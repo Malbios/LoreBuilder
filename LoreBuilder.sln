@@ -15,6 +15,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LoreBuilder", "src\LoreBuil
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunSharp.Components", "src\FunSharp.Components\FunSharp.Components.fsproj", "{27BA8B3E-22C8-479F-BBDA-36508A9683E9}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LoreBuilder.Test", "src\LoreBuilder.Test\LoreBuilder.Test.fsproj", "{C9995C48-0457-43E7-A753-152DA7611077}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,10 @@ Global
 		{27BA8B3E-22C8-479F-BBDA-36508A9683E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27BA8B3E-22C8-479F-BBDA-36508A9683E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27BA8B3E-22C8-479F-BBDA-36508A9683E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9995C48-0457-43E7-A753-152DA7611077}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9995C48-0457-43E7-A753-152DA7611077}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9995C48-0457-43E7-A753-152DA7611077}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9995C48-0457-43E7-A753-152DA7611077}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -44,6 +50,7 @@ Global
 		{81061435-57F0-4BDC-93B7-C54032212B93} = {5145700E-0D0C-4FD7-8FA8-4EBDA649A500}
 		{DB02856F-1FC9-4C7D-9106-BD0E4936E76F} = {BF23CEE7-D39F-4B61-82BD-DF8AE80271D8}
 		{27BA8B3E-22C8-479F-BBDA-36508A9683E9} = {5145700E-0D0C-4FD7-8FA8-4EBDA649A500}
+		{C9995C48-0457-43E7-A753-152DA7611077} = {BF23CEE7-D39F-4B61-82BD-DF8AE80271D8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8CFD6033-FB8D-48BE-9628-9D83DC023CAB}
