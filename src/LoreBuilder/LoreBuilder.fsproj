@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>default</LangVersion>
+    <BlazorWebAssemblyEnableLinking>false</BlazorWebAssemblyEnableLinking>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Routes.fs" />
+    <Compile Include="Model\Common.fs" />
+    <Compile Include="Model\TestPage.fs" />
+    <Compile Include="Model\Application.fs" />
+    <Compile Include="Pages\Root.fs" />
+    <Compile Include="Pages\NotFound.fs" />
+    <Compile Include="Pages\TestPage.fs" />
+    <Compile Include="Update.fs" />
+    <Compile Include="Main.fs" />
+    <Compile Include="Startup.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Bolero" Version="0.*" />
+    <PackageReference Include="Bolero.Build" Version="0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.*" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.*" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="Radzen.Blazor" Version="7.1.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FunSharp.Common\FunSharp.Common.fsproj" />
+    <ProjectReference Include="..\FunSharp.Components\FunSharp.Components.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LoreBuilder.bolero.css" />
+  </ItemGroup>
+</Project>

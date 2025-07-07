@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <EnableDefaultContentItems>true</EnableDefaultContentItems>
+        <BoleroCssEnable>true</BoleroCssEnable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="HoverArea\HoverArea.fs" />
+        <None Include="HoverArea\HoverArea.bolero.css" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Bolero" Version="0.24.39" />
+      <PackageReference Include="Bolero.Build" Version="0.24.39" />
+    </ItemGroup>
+
+</Project>
