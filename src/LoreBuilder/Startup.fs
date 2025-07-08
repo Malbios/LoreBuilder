@@ -6,6 +6,7 @@ open Microsoft.AspNetCore.Components.WebAssembly.Hosting
 open Blazored.LocalStorage
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
+open Plk.Blazor.DragDrop
 open Radzen
 
 module MyApp =
@@ -17,12 +18,16 @@ module MyApp =
         
         builder.Logging.SetMinimumLevel(LogLevel.Trace) |> ignore
         
-        builder.Services.AddScoped<HttpClient>(fun _ ->
-            new HttpClient(BaseAddress = Uri builder.HostEnvironment.BaseAddress)
-        ) |> ignore
+        let baseAddress = Uri builder.HostEnvironment.BaseAddress
         
-        builder.Services.AddBlazoredLocalStorage() |> ignore
-        builder.Services.AddRadzenComponents() |> ignore
+        let services = builder.Services
+        
+        services
+            .AddScoped<HttpClient>(fun _ -> new HttpClient(BaseAddress = baseAddress))
+            .AddBlazoredLocalStorage()
+            .AddRadzenComponents()
+            .AddBlazorDragDrop()
+        |> ignore
 
         builder.RootComponents.Add<Main.ClientApplication>("#main")
 

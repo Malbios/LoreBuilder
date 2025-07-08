@@ -27,9 +27,9 @@ let page (jsRuntime: IJSRuntime) (logger: ILogger) model dispatch =
             <| function
                 | Page.Root -> Root.page
                 | Page.NotFound -> NotFound.page
-                | Page.HoverTest -> HoverTest.view model.HoverTestState (fun x -> dispatch (Application.Message.HoverTestMessage x))
-                | Page.CardTest -> CardTest.view () (fun () -> ())
-                | Page.DragDropTest -> DragDropTest.view () (fun () -> ())
+                | Page.HoverTest -> HoverTest.view model.HoverTestState (fun x -> dispatch (Application.Message.HoverTestMsg x))
+                | Page.CardTest -> CardTest.view
+                | Page.DragDropTest -> DragDropTest.view jsRuntime logger model.DragDropTestState (fun x -> dispatch (Application.Message.DragDropTestMsg x))
         }
     }
 

@@ -7,8 +7,6 @@ open Bolero.Node
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 open FunSharp.Common
-open Microsoft.Extensions.Logging
-open Microsoft.JSInterop
 
 type CardData = {
     Id: Guid
@@ -32,10 +30,6 @@ module CardData =
 
 type Card() =
     inherit Component()
-    
-    let setDragData (js: IJSRuntime) (e: obj) (data: string) =
-        js.InvokeVoidAsync("dragDropHelper.setData", e, data)
-        |> ignore
     
     let svg textColor cardType =
         """
@@ -62,12 +56,6 @@ type Card() =
     
     override _.CssScope = CssScopes.Card
     
-    [<Inject>]
-    member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
-    
-    [<Inject>]
-    member val Logger : ILogger<Card> = Unchecked.defaultof<_> with get, set
-    
     [<Parameter>]
     member val Data: CardData = CardData.empty with get, set
 
@@ -75,16 +63,10 @@ type Card() =
         
         let themeColor = CardType.themeColor this.Data.Type
         let textColor = CardType.textColor this.Data.Type
-                
+        
         div {
             attr.``class`` "card"
             attr.style $"color: {textColor}; background-color: {themeColor};"
-            attr.draggable true
-            
-            on.dragstart (fun e ->
-                this.Logger.LogInformation $"drag start"
-                setDragData this.JSRuntime e (this.Data.Id.ToString())
-            )
             
             div {
                 attr.``class`` "side top"

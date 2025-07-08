@@ -34,9 +34,14 @@ module Update =
 
             { model with UserSettings = settings }, Cmd.none
             
-        | Application.Message.TestPageMsg msg ->
-            let subModel, cmd = HoverTest.update logger msg model.TestPageState
+        | Application.Message.HoverTestMsg msg ->
+            let subModel, cmd = HoverTest.update msg model.HoverTestState
             
-            { model with TestPageState = subModel }, cmd
+            { model with HoverTestState = subModel }, cmd
+            
+        | Application.Message.DragDropTestMsg msg ->
+            let subModel, cmd = DragDropTest.update logger msg model.DragDropTestState
+            
+            { model with DragDropTestState = subModel }, cmd
 
         | Application.Message.None -> model, Cmd.none

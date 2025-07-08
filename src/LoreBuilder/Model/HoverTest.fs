@@ -1,6 +1,5 @@
 namespace LoreBuilder.Model
 
-open System
 open FunSharp.Common
 
 [<RequireQualifiedAccess>]

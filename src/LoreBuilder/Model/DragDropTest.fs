@@ -6,14 +6,14 @@ open System
 module DragDropTest =
 
     type State = {
-        Temp: bool
+        DroppedOff: Guid
     }
     
     [<RequireQualifiedAccess>]
     module State =
         
         let initial = {
-            Temp = false
+            DroppedOff = Guid.Empty
         }
         
     type Message =

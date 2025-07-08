@@ -9,7 +9,8 @@ module Application =
         Page: Page
         Error: string option
         UserSettings: UserSettings
-        TestPageState: HoverTest.State
+        HoverTestState: HoverTest.State
+        DragDropTestState: DragDropTest.State
     }
 
     module State =
@@ -20,7 +21,8 @@ module Application =
             UserSettings = {
                 Theme = Some ThemeMode.Dark
             }
-            TestPageState = HoverTest.State.initial
+            HoverTestState = HoverTest.State.initial
+            DragDropTestState = DragDropTest.State.initial
         }
 
     type Message =
@@ -29,4 +31,5 @@ module Application =
         | Error of exn
         | ClearError
         | SetThemeMode of ThemeMode
-        | TestPageMsg of HoverTest.Message
+        | HoverTestMsg of HoverTest.Message
+        | DragDropTestMsg of DragDropTest.Message
