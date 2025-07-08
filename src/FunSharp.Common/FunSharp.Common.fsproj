@@ -1,10 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
-
+    <ItemGroup>
+      <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
+      <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
     <ItemGroup>
         <Compile Include="String.fs" />
         <Compile Include="Union.fs" />
@@ -13,11 +16,4 @@
         <Compile Include="AsyncResult.fs" />
         <Compile Include="Utils.fs" />
     </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
-      <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    </ItemGroup>
-
 </Project>

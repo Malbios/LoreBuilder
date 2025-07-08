@@ -5,7 +5,7 @@ open Bolero.Html
 open Microsoft.AspNetCore.Components
 
 type HoverArea() =
-    inherit ElmishComponent<unit, unit>()
+    inherit Component()
     
     override _.CssScope = CssScopes.HoverArea
     
@@ -16,7 +16,8 @@ type HoverArea() =
     [<Parameter>]
     member val OnMouseOut: unit -> unit = ignore with get, set
 
-    override this.View _ _ =
+    override this.Render() =
+        
         div {
             attr.``class`` "hover-area"
             attr.style $"width: {fst this.Size}; height: {snd this.Size};"

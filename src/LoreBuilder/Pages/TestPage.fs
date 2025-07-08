@@ -25,6 +25,8 @@ module TestPage =
 
             comp<RadzenStack> {
                 "Orientation" => Orientation.Vertical
+                "AlignItems" => AlignItems.Center
+                "JustifyContent" => JustifyContent.Center
                 
                 comp<RadzenStack> {
                     "Orientation" => Orientation.Horizontal
@@ -53,46 +55,12 @@ module TestPage =
                         | false -> p { model.HoverText }
                 }
                 
-                // <div class="role-square">
-                //   <div class="role role-top">A WRITER</div>
-                //   <div class="role role-right">A BLADEMASTER</div>
-                //   <div class="role role-bottom">A STORYTELLER</div>
-                //   <div class="role role-left">A SCION</div>
-                //   <div class="center-icon">👤</div>
-                // </div>
+                comp<RadzenStack> {
+                    "Orientation" => Orientation.Horizontal
+                    
+                    comp<AgentTestCard>
                 
-                div {
-                    attr.``class`` "role-square"
-                    
-                    div {
-                        attr.``class`` "role role-top"
-                        
-                        "A WRITER"
-                    }
-                    
-                    div {
-                        attr.``class`` "role role-right"
-                        
-                        "A BLADEMASTER"
-                    }
-                    
-                    div {
-                        attr.``class`` "role role-bottom"
-                        
-                        "A STORYTELLER"
-                    }
-                    
-                    div {
-                        attr.``class`` "role role-left"
-                        
-                        "A SCION"
-                    }
-                    
-                    div {
-                        attr.``class`` "center-icon"
-                        
-                        i { attr.``class`` "fa-solid fa-user fa-2x" }
-                    }
+                    comp<FactionTestCard>
                 }
             }
         }
