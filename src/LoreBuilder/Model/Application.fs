@@ -9,7 +9,7 @@ module Application =
         Page: Page
         Error: string option
         UserSettings: UserSettings
-        TestPageState: TestPage.State
+        TestPageState: HoverTest.State
     }
 
     module State =
@@ -20,7 +20,7 @@ module Application =
             UserSettings = {
                 Theme = Some ThemeMode.Dark
             }
-            TestPageState = TestPage.State.initial
+            TestPageState = HoverTest.State.initial
         }
 
     type Message =
@@ -29,4 +29,4 @@ module Application =
         | Error of exn
         | ClearError
         | SetThemeMode of ThemeMode
-        | TestPageMsg of TestPage.Message
+        | TestPageMsg of HoverTest.Message

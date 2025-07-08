@@ -1,13 +1,17 @@
 namespace LoreBuilder.Components
 
+open System
 open Bolero
 open Bolero.Html
 open Bolero.Node
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 open FunSharp.Common
+open Microsoft.Extensions.Logging
+open Microsoft.JSInterop
 
 type CardData = {
+    Id: Guid
     Type: CardType
     Top: string
     Right: string
@@ -18,6 +22,7 @@ type CardData = {
 module CardData =
     
     let empty = {
+        Id = Guid.Empty
         Type = CardType.Unknown
         Top = String.empty
         Right = String.empty
@@ -28,31 +33,58 @@ module CardData =
 type Card() =
     inherit Component()
     
-    let svg category =
+    let setDragData (js: IJSRuntime) (e: obj) (data: string) =
+        js.InvokeVoidAsync("dragDropHelper.setData", e, data)
+        |> ignore
+    
+    let svg textColor cardType =
         """
-<svg class="category" viewBox="0 0 100 100">
+<svg viewBox="0 0 100 100">
  	<defs>
-		<path id="curve" d="M 10,70 A45,45 0 0,0 90,70" />
+		<path id="curve" d="M 10,60 A45,45 0 0,0 90,60" />
  	</defs>
- 	<text>
+ 	<text
+      fill="{TextColor}"
+      font-size="10px"
+      font-weight="bold"
+      text-transform="uppercase"
+      letter-spacing="2px"
+    >
 		<textPath href="#curve" startOffset="50%" text-anchor="middle">
- 			{category}
+ 			{CardType}
  		</textPath>
  	</text>
 </svg>
 """
-        |> _.Replace("{category}", category)
+        |> _.Replace("{TextColor}", textColor)
+        |> _.Replace("{CardType}", cardType)
         |> RawHtml
     
     override _.CssScope = CssScopes.Card
+    
+    [<Inject>]
+    member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
+    
+    [<Inject>]
+    member val Logger : ILogger<Card> = Unchecked.defaultof<_> with get, set
     
     [<Parameter>]
     member val Data: CardData = CardData.empty with get, set
 
     override this.Render() =
+        
+        let themeColor = CardType.themeColor this.Data.Type
+        let textColor = CardType.textColor this.Data.Type
                 
         div {
             attr.``class`` "card"
+            attr.style $"color: {textColor}; background-color: {themeColor};"
+            attr.draggable true
+            
+            on.dragstart (fun e ->
+                this.Logger.LogInformation $"drag start"
+                setDragData this.JSRuntime e (this.Data.Id.ToString())
+            )
             
             div {
                 attr.``class`` "side top"
@@ -82,11 +114,17 @@ type Card() =
                 attr.``class`` "center"
                 
                 div {
-                    attr.``class`` "circle"
+                    attr.``class`` "outer-circle"
+                    attr.style $"background-color: {themeColor};"
+                }
+                
+                div {
+                    attr.``class`` "inner-circle"
                 }
                 
                 div {
                     attr.``class`` "icon"
+                    attr.style $"color: {themeColor};"
                     
                     i { attr.``class`` "fa-solid fa-user fa-2x" }
                 }
@@ -94,8 +132,7 @@ type Card() =
                 div {
                     attr.``class`` "category"
                     
-                    Union.toString this.Data.Type
-                    |> svg
+                    svg textColor (Union.toString this.Data.Type)
                 }
             }
         }

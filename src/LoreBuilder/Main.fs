@@ -7,14 +7,15 @@ open Elmish
 open Bolero
 open Bolero.Html
 open Microsoft.Extensions.Logging
+open Microsoft.JSInterop
 open Radzen.Blazor
 open LoreBuilder.Model
 
 let currentTheme (model: Application.State) =
     
-    model.UserSettings.Theme |> Option.defaultWith (fun _ -> ThemeMode.Light)
+    model.UserSettings.Theme |> Option.defaultWith (fun _ -> ThemeMode.Dark)
     
-let page model dispatch =
+let page (jsRuntime: IJSRuntime) (logger: ILogger) model dispatch =
     
     section {
         attr.``class`` $"section {Union.toString (currentTheme model)}"
@@ -25,17 +26,17 @@ let page model dispatch =
             cond model.Page
             <| function
                 | Page.Root -> Root.page
-    
                 | Page.NotFound -> NotFound.page
-                
-                | Page.TestPage -> TestPage.view model.TestPageState (fun x -> dispatch (Application.Message.TestPageMsg x))
+                | Page.HoverTest -> HoverTest.view model.HoverTestState (fun x -> dispatch (Application.Message.HoverTestMessage x))
+                | Page.CardTest -> CardTest.view () (fun () -> ())
+                | Page.DragDropTest -> DragDropTest.view () (fun () -> ())
         }
     }
 
-let view model dispatch =
+let view (jsRuntime: IJSRuntime) (logger: ILogger) model dispatch =
         
     concat {
-        page model dispatch
+        page jsRuntime logger model dispatch
 
         match model.Error with
         | Some errorText ->
@@ -53,6 +54,9 @@ type ClientApplication() =
     inherit ProgramComponent<Application.State, Application.Message>()
 
     override _.CssScope = CssScopes.LoreBuilder
+    
+    [<Inject>]
+    member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
     
     [<Inject>]
     member val Logger : ILogger<ClientApplication> = Unchecked.defaultof<_> with get, set
@@ -76,7 +80,9 @@ type ClientApplication() =
 
         let getCurrentUrl = fun _ -> this.NavigationManager.Uri
         
-        let update = Update.update navigate getCurrentUrl
+        let update = Update.update navigate getCurrentUrl this.Logger
+        
+        let view = view this.JSRuntime this.Logger
         
         let page (model: Application.State) = model.Page
 

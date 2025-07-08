@@ -6,4 +6,6 @@ open Bolero
 type Page =
     | [<EndPoint "/">] Root
     | [<EndPoint "/NotFound">] NotFound
-    | [<EndPoint "/TestPage">] TestPage
+    | [<EndPoint "/HoverTest">] HoverTest
+    | [<EndPoint "/CardTest">] CardTest
+    | [<EndPoint "/DragDropTest">] DragDropTest

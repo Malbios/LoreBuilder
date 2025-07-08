@@ -4,16 +4,17 @@ open System
 open Elmish
 open FunSharp.Common
 open LoreBuilder.Model
+open Microsoft.Extensions.Logging
 
 module Update =
     
-    let update (_: NavigationType -> string -> unit) _ message (model: Application.State) =
+    let update (_: NavigationType -> string -> unit) _ (logger: ILogger) message (model: Application.State) =
 
         match message with
         | Application.Message.SetPage page ->
             let model, cmd =
                 match page with
-                | Page.Root -> { model with Page = page }, Cmd.ofMsg (Application.Message.SetPage Page.TestPage)
+                | Page.Root -> { model with Page = page }, Cmd.none
                 | _ -> { model with Page = page }, Cmd.none
 
             { model with Error = None }, cmd
@@ -34,7 +35,7 @@ module Update =
             { model with UserSettings = settings }, Cmd.none
             
         | Application.Message.TestPageMsg msg ->
-            let subModel, cmd = TestPage.update msg model.TestPageState
+            let subModel, cmd = HoverTest.update logger msg model.TestPageState
             
             { model with TestPageState = subModel }, cmd
 

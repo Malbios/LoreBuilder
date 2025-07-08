@@ -12,3 +12,15 @@
 .content {
     margin: 1rem;
 }
+
+.dropzone {
+    width: 100px;
+    height: 100px;
+    background-color: gray;
+
+    user-select: none;
+    -webkit-user-drag: element;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}

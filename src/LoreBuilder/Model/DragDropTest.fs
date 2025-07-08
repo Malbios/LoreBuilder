@@ -1,21 +1,20 @@
 namespace LoreBuilder.Model
 
-open FunSharp.Common
+open System
 
 [<RequireQualifiedAccess>]
-module TestPage =
+module DragDropTest =
 
     type State = {
-        HoverText: string
+        Temp: bool
     }
     
     [<RequireQualifiedAccess>]
     module State =
         
         let initial = {
-            HoverText = String.empty
+            Temp = false
         }
         
     type Message =
-        | SetHoverText of string
-        | ClearHoverText
+        | DropOff of Guid
