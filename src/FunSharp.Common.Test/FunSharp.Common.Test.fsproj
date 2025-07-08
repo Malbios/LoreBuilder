@@ -11,7 +11,6 @@
         <PackageReference Include="xunit" Version="2.9.3"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1"/>
         <PackageReference Include="FsCheck.Xunit" Version="3.3.0"/>
-        <PackageReference Include="Faqt" Version="5.0.0"/>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="JsonSerializer.Test.fs"/>
@@ -20,5 +19,6 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FunSharp.Common\FunSharp.Common.fsproj" />
+      <ProjectReference Include="..\LoreBuilder.Test.Common\LoreBuilder.Test.Common.fsproj" />
     </ItemGroup>
 </Project>

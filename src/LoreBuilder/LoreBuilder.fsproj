@@ -25,12 +25,11 @@
     <None Include="LoreBuilder.bolero.css" />
     <Compile Include="Routes.fs" />
     <Compile Include="Model\Common.fs" />
+    <Compile Include="Model\Lore.fs" />
     <Compile Include="Model\TestPage.fs" />
     <Compile Include="Model\Application.fs" />
-    <None Include="Components\AgentTestCard\AgentTestCard.bolero.css" />
-    <Compile Include="Components\AgentTestCard\AgentTestCard.fs" />
-    <None Include="Components\FactionTestCard\FactionTestCard.bolero.css" />
-    <Compile Include="Components\FactionTestCard\FactionTestCard.fs" />
+    <None Include="Components\Card\Card.bolero.css" />
+    <Compile Include="Components\Card\Card.fs" />
     <Compile Include="Pages\Root.fs" />
     <Compile Include="Pages\NotFound.fs" />
     <Compile Include="Pages\TestPage.fs" />

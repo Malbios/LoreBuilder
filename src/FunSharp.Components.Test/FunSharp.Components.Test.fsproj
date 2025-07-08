@@ -4,7 +4,7 @@
         <IsPackable>false</IsPackable>
         <GenerateProgramFile>false</GenerateProgramFile>
         <IsTestProject>true</IsTestProject>
-        <RootNamespace>LoreBuilder.Test</RootNamespace>
+        <RootNamespace>FunSharp.Components.Test</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.0"/>
@@ -18,6 +18,6 @@
         <Compile Include="Program.fs"/>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\LoreBuilder.Test.Common\LoreBuilder.Test.Common.fsproj" />
+        <ProjectReference Include="..\LoreBuilder.Test.Common\LoreBuilder.Test.Common.fsproj" />
     </ItemGroup>
 </Project>
