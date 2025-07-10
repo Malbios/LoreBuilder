@@ -1,21 +1,23 @@
-﻿/*add this to avoid flickering*/
+﻿/* add this to avoid flickering */
 .plk-dd-inprogess > * {
     pointer-events: none;
 }
 
-/*dropzone style style*/
+/* dropzone style */
 .plk-dd-dropzone {
-    min-height: 50px;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
 }
 
-/*drag drop styles*/
+/* drag drop styles */
 
 .plk-dd-spacing {
-    height: 10px;
+    /*height: 10px;*/
 }
 
 .plk-dd-spacing-dragged-over {
-    padding: 25px;
+    /*padding: 25px;*/
 }
 
 .plk-dd-dragged-over {

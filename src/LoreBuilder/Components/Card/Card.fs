@@ -1,37 +1,15 @@
 namespace LoreBuilder.Components
 
-open System
 open Bolero
 open Bolero.Html
 open Bolero.Node
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
-open FunSharp.Common
-
-type CardData = {
-    Id: Guid
-    Type: CardType
-    Top: string
-    Right: string
-    Bottom: string
-    Left: string
-}
-
-module CardData =
-    
-    let empty = {
-        Id = Guid.Empty
-        Type = CardType.Unknown
-        Top = String.empty
-        Right = String.empty
-        Bottom = String.empty
-        Left = String.empty
-    }
 
 type Card() =
     inherit Component()
     
-    let svg textColor cardType =
+    let svgCardTypeLabel textColor cardType =
         """
 <svg viewBox="0 0 100 100">
  	<defs>
@@ -53,6 +31,87 @@ type Card() =
         |> _.Replace("{TextColor}", textColor)
         |> _.Replace("{CardType}", cardType)
         |> RawHtml
+        
+    let cardSides sides =
+        
+        concat {
+            div {
+                attr.``class`` "side top"
+                
+                sides.Top
+            }
+            
+            div {
+                attr.``class`` "side bottom"
+                
+                sides.Bottom
+            }
+            
+            div {
+                attr.``class`` "side left"
+                
+                sides.Left
+            }
+            
+            div {
+                attr.``class`` "side right"
+                
+                sides.Right
+            }
+        }
+        
+    let cardCenter cardVisuals =
+        
+        div {
+            attr.``class`` "center"
+            
+            div {
+                attr.``class`` "outer-circle"
+                attr.style $"background-color: {cardVisuals.ThemeColor};"
+            }
+            
+            div {
+                attr.``class`` "inner-circle"
+            }
+            
+            div {
+                attr.``class`` "icon"
+                attr.style $"color: {cardVisuals.IconColor};"
+                
+                i { attr.``class`` $"fa-solid {cardVisuals.Icon} fa-2x" }
+            }
+            
+            div {
+                attr.``class`` "category"
+                
+                svgCardTypeLabel cardVisuals.FrontTextColor cardVisuals.Type
+            }
+        }
+        
+    let cardFront cardVisuals sides =
+        
+        div {
+            attr.``class`` "card-front"
+            attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor};"
+        
+            cardSides sides
+            
+            cardCenter cardVisuals
+        }
+        
+    let cardBack cardVisuals (sides: Sides) =
+        
+        div {
+            attr.``class`` "card-back"
+            attr.style $"color: {cardVisuals.BackTextColor}; background-color: #FFFFFF;"
+            
+            cardSides sides
+            
+            cardCenter cardVisuals
+        }
+        
+    let mutable isFlipped = true
+    let flippedClass () = if isFlipped then " flipped" else ""
     
     override _.CssScope = CssScopes.Card
     
@@ -61,60 +120,18 @@ type Card() =
 
     override this.Render() =
         
-        let themeColor = CardType.themeColor this.Data.Type
-        let textColor = CardType.textColor this.Data.Type
+        let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
         div {
-            attr.``class`` "card"
-            attr.style $"color: {textColor}; background-color: {themeColor};"
+            attr.``class`` $"card-flip{flippedClass ()}"
+                
+            on.click (fun _ -> isFlipped <- not isFlipped)
             
             div {
-                attr.``class`` "side top"
+                attr.``class`` "card"
                 
-                this.Data.Top
-            }
-            
-            div {
-                attr.``class`` "side right"
+                cardFront cardVisuals this.Data.Front
                 
-                this.Data.Right
-            }
-            
-            div {
-                attr.``class`` "side bottom"
-                
-                this.Data.Bottom
-            }
-            
-            div {
-                attr.``class`` "side left"
-                
-                this.Data.Left
-            }
-            
-            div {
-                attr.``class`` "center"
-                
-                div {
-                    attr.``class`` "outer-circle"
-                    attr.style $"background-color: {themeColor};"
-                }
-                
-                div {
-                    attr.``class`` "inner-circle"
-                }
-                
-                div {
-                    attr.``class`` "icon"
-                    attr.style $"color: {themeColor};"
-                    
-                    i { attr.``class`` "fa-solid fa-user fa-2x" }
-                }
-                
-                div {
-                    attr.``class`` "category"
-                    
-                    svg textColor (Union.toString this.Data.Type)
-                }
+                cardBack cardVisuals this.Data.Back
             }
         }

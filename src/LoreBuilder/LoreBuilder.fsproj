@@ -30,6 +30,7 @@
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\DragDropTest.fs" />
     <Compile Include="Model\Application.fs" />
+    <Compile Include="Utils.fs" />
     <None Include="Components\Card\Card.bolero.css" />
     <Compile Include="Components\Card\Card.fs" />
     <Compile Include="Pages\Root.fs" />

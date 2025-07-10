@@ -11,15 +11,6 @@ open LoreBuilder.Model
 
 [<RequireQualifiedAccess>]
 module CardTest =
-
-    let private cardType cardType = {
-        Id = Guid.NewGuid()
-        Type = cardType
-        Top = "A Writer"
-        Right = "A Blademaster"
-        Bottom = "A Storyteller"
-        Left = "A Scion"
-    }
             
     let view : Node =
         
@@ -31,9 +22,9 @@ module CardTest =
                 "Wrap" => FlexWrap.Wrap
                 "Gap" => "1rem"
                 
-                for entry in Union.toList<CardType>() do
+                for card in Utils.cards do
                     comp<Card> {
-                        "Data" => (cardType entry)
+                        "Data" => card
                     }
             }
         }

@@ -1,16 +1,20 @@
-.card {
-    position: relative;
-    width: 270px;
-    height: 270px;
+.card-front,
+.card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 20px; /* match your card shape */
+}
+
+.card-front {
     background-image: conic-gradient(from 45deg,
         /* Left */ rgba(0, 0, 0, 0.2) 0deg 90deg, /* Top */ rgba(255, 255, 255, 0.1) 90deg 180deg, /* Right */ rgba(0, 0, 0, 0.2) 180deg 270deg, /* Bottom */ rgba(255, 255, 255, 0.1) 270deg 360deg
     );
-    border-radius: 20px;
-    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-weight: bold;
-    font-family: sans-serif;
-    text-align: center;
-    overflow: hidden;
+}
+
+.card-back {
+    transform: rotateY(180deg);
 }
 
 .side {
