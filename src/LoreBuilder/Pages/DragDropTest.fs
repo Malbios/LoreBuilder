@@ -40,7 +40,7 @@ type DragDropTest() =
                 }
                 
                 comp<Dropzone<Card>> {
-                    "Class" => "single-card-drop"
+                    "Class" => "card-stack"
                     "MaxItems" => 1
                     "Items" => cardStack
                     

@@ -1,3 +1,10 @@
+.card-flip {
+    perspective: 1000px;
+    width: 270px;
+    height: 270px;
+    margin: 0.1rem;
+}
+
 .card-front,
 .card-back {
     position: absolute;

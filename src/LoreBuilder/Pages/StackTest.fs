@@ -1,8 +1,10 @@
 namespace LoreBuilder.Pages
 
+open System
 open Bolero
 open Bolero.Html
 open Elmish
+open FunSharp.Common
 open LoreBuilder
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
@@ -29,10 +31,6 @@ type StackTest() =
     
     override this.View model dispatch =
         
-        let onDropHandler (card: Card) =
-            this.Logger.LogInformation $"OnDropHandler: {card.Data.Id}"
-            dispatch (StackTest.Message.Drop card)
-        
         let cardStack =
             model.Cards
             |> ResizeArray
@@ -55,17 +53,34 @@ type StackTest() =
                     )
                 }
                 
-                comp<Dropzone<Card>> {
-                    "Class" => "single-card-drop"
-                    "MaxItems" => 1
-                    "Items" => cardStack
-                    "OnItemDrop" => EventCallbackFactory().Create(this, onDropHandler)
+                comp<RadzenStack> {
+                    "Orientation" => Orientation.Horizontal
                     
-                    attr.fragmentWith "ChildContent" (fun (item: Card) ->
-                        comp<Components.Card> {
-                            "Data" => item.Data
-                        }
-                    )
+                    comp<Dropzone<Card>> {
+                        "Class" => "card-stack"
+                        "Items" => cardStack
+                        "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // target could be null
+                        "CopyItem" => Func<Card, Card>(fun card -> { card with Data = card.Data })
+                        "OnItemDrop" => EventCallbackFactory().Create(this, (fun card ->
+                            this.Logger.LogInformation $"cardStack.Count: {cardStack.Count}"
+                            dispatch (StackTest.Message.Drop card)
+                            cardStack.Clear()
+                            this.Logger.LogInformation $"cardStack.Count: {cardStack.Count}"
+                        ))
+                    }
+                    
+                    comp<RadzenStack> {
+                        "Orientation" => Orientation.Vertical
+                        
+                        for card in model.Cards do
+                            let cardVisuals = CardVisuals.fromCardType card.Data.Type
+                            
+                            div {
+                                attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor};"
+                                
+                                text $"{card.Data.Id} ({Union.toString card.Data.Type})"
+                            }
+                    }
                 }
             }
         }
@@ -73,10 +88,9 @@ type StackTest() =
 [<RequireQualifiedAccess>]
 module StackTest =
     
-    let update (logger: ILogger) message (model: StackTest.State) =
+    let update (_: ILogger) message (model: StackTest.State) =
         
         match message with
         
         | StackTest.Message.Drop card ->
-            logger.LogInformation $"StackTest.Message.Drop: {card.Data.Id}"
             { model with Cards = [card] @ model.Cards }, Cmd.none

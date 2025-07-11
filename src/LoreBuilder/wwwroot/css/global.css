@@ -1,16 +1,9 @@
-.single-card-drop {
+.card-stack {
     width: 300px;
     height: 300px;
     border: 2px dotted black;
     justify-content: center;
     align-items: center;
-}
-
-.card-flip {
-    perspective: 1000px;
-    width: 270px;
-    height: 270px;
-    margin: 0.1rem;
 }
 
 .card {
