@@ -121,3 +121,8 @@ module CardData =
         Front = Sides.empty
         Back = Sides.empty
     }
+
+type Card = {
+    IsFlipped: bool
+    Data: CardData
+}

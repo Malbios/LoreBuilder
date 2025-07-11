@@ -109,23 +109,26 @@ type Card() =
             
             cardCenter cardVisuals
         }
-        
-    let mutable isFlipped = true
-    let flippedClass () = if isFlipped then " flipped" else ""
     
     override _.CssScope = CssScopes.Card
     
     [<Parameter>]
+    member val IsFlipped: bool = false with get, set
+    
+    [<Parameter>]
     member val Data: CardData = CardData.empty with get, set
+    
+    member private this.FlippedClass () =
+        if this.IsFlipped then " flipped" else ""
 
     override this.Render() =
         
         let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
         div {
-            attr.``class`` $"card-flip{flippedClass ()}"
+            attr.``class`` $"card-flip{this.FlippedClass ()}"
                 
-            on.click (fun _ -> isFlipped <- not isFlipped)
+            on.click (fun _ -> this.IsFlipped <- not this.IsFlipped)
             
             div {
                 attr.``class`` "card"

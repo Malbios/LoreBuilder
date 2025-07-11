@@ -6,18 +6,20 @@ open Elmish
 open Microsoft.Extensions.Logging
 open Microsoft.JSInterop
 open Plk.Blazor.DragDrop
-open LoreBuilder.Components
 open LoreBuilder.Model
 open Radzen
 open Radzen.Blazor
 
 [<RequireQualifiedAccess>]
 module DragDropTest =
-
-    let private cardList: System.Collections.Generic.List<CardData> =
-        Utils.cards |> ResizeArray |> System.Collections.Generic.List
+    
+    let private cardList: System.Collections.Generic.List<Card> =
+        Utils.cards
+        |> List.map (fun cardData -> { IsFlipped = false; Data = cardData })
+        |> ResizeArray
+        |> System.Collections.Generic.List
         
-    let private cardStack: System.Collections.Generic.List<CardData> =
+    let private cardStack: System.Collections.Generic.List<Card> =
         System.Collections.Generic.List ()
     
     let update (logger: ILogger) message (model: DragDropTest.State) =
@@ -35,12 +37,13 @@ module DragDropTest =
             comp<RadzenStack> {
                 "Orientation" => Orientation.Vertical
                 
-                comp<Dropzone<CardData>> {
+                comp<Dropzone<Card>> {
                     "Items" => cardList
                     
-                    attr.fragmentWith "ChildContent" (fun (item: CardData) ->
-                        comp<Card> {
-                            "Data" => item
+                    attr.fragmentWith "ChildContent" (fun (item: Card) ->
+                        comp<Components.Card> {
+                            "IsFlipped" => item.IsFlipped
+                            "Data" => item.Data
                         }
                     )
                 }
@@ -51,7 +54,7 @@ module DragDropTest =
                     "Items" => cardStack
                     
                     attr.fragmentWith "ChildContent" (fun (item: CardData) ->
-                        comp<Card> {
+                        comp<Components.Card> {
                             "Data" => item
                         }
                     )
