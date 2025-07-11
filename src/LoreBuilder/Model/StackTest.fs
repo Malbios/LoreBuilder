@@ -1,20 +1,18 @@
 namespace LoreBuilder.Model
 
-open System
-
 [<RequireQualifiedAccess>]
-module DragDropTest =
+module StackTest =
 
     type State = {
-        DroppedOff: Guid
+        Cards: Card list
     }
     
     [<RequireQualifiedAccess>]
     module State =
         
         let initial = {
-            DroppedOff = Guid.Empty
+            Cards = List.empty
         }
         
     type Message =
-        | DropOff of Guid
+        | Drop of Card

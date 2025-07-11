@@ -1,4 +1,4 @@
-namespace LoreBuilder.Components
+namespace FunSharp.Components
 
 open Bolero
 open Bolero.Html

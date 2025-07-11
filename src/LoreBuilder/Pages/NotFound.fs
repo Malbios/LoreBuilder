@@ -1,12 +1,14 @@
-namespace LoreBuilder
+namespace LoreBuilder.Pages
 
+open Bolero
 open Bolero.Html
 open Radzen.Blazor
 
-module NotFound =
-    
-    let page =
+type NotFound() =
+    inherit Component()
 
+    override this.Render() =
+        
         div {
             attr.``class`` "center-wrapper"
             

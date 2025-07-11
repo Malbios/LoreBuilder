@@ -1,12 +1,14 @@
-namespace LoreBuilder
+namespace LoreBuilder.Pages
 
+open Bolero
 open Bolero.Html
 open Radzen.Blazor
 
-module Root =
-    
-    let page =
+type Root() =
+    inherit Component()
 
+    override this.Render() =
+        
         div {
             attr.``class`` "center-wrapper"
             

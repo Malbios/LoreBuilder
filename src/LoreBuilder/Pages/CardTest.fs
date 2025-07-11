@@ -1,18 +1,16 @@
-namespace LoreBuilder
+namespace LoreBuilder.Pages
 
-open System
 open Bolero
 open Bolero.Html
+open LoreBuilder.Components
 open Radzen
 open Radzen.Blazor
-open FunSharp.Common
-open LoreBuilder.Components
-open LoreBuilder.Model
+open LoreBuilder
 
-[<RequireQualifiedAccess>]
-module CardTest =
-            
-    let view : Node =
+type CardTest() =
+    inherit Component()
+    
+    override this.Render() =
         
         div {
             attr.``class`` "content"
