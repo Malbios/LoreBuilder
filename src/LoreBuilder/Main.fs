@@ -17,7 +17,7 @@ type ClientApplication() =
     
         model.UserSettings.Theme |> Option.defaultWith (fun _ -> ThemeMode.Dark)
     
-    let view model dispatch =
+    let view (model: Application.State) dispatch =
         
         let hoverTestDispatch message =
             dispatch (Application.Message.HoverTestMsg message)
@@ -33,11 +33,11 @@ type ClientApplication() =
         
                 cond model.Page
                 <| function
-                    | Page.Root -> comp<Pages.Root> {}
-                    | Page.NotFound -> comp<Pages.NotFound> {}
+                    | Page.Root -> comp<Pages.Root> { attr.empty() }
+                    | Page.NotFound -> comp<Pages.NotFound> { attr.empty() }
                     | Page.HoverTest -> ecomp<Pages.HoverTest,_,_> model.HoverTest hoverTestDispatch { attr.empty() }
-                    | Page.CardTest -> comp<Pages.CardTest> {}
-                    | Page.DragDropTest -> comp<Pages.DragDropTest> {}
+                    | Page.CardTest -> comp<Pages.CardTest> { attr.empty() }
+                    | Page.DragDropTest -> comp<Pages.DragDropTest> { attr.empty() }
                     | Page.StackTest -> ecomp<Pages.StackTest,_,_> model.StackTest stackTestDispatch { attr.empty() }
             }
         }

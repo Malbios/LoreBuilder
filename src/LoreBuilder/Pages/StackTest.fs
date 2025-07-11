@@ -55,15 +55,15 @@ type StackTest() =
                     )
                 }
                 
-                comp<Dropzone<CardData>> {
+                comp<Dropzone<Card>> {
                     "Class" => "single-card-drop"
                     "MaxItems" => 1
                     "Items" => cardStack
                     "OnItemDrop" => EventCallbackFactory().Create(this, onDropHandler)
                     
-                    attr.fragmentWith "ChildContent" (fun (item: CardData) ->
+                    attr.fragmentWith "ChildContent" (fun (item: Card) ->
                         comp<Components.Card> {
-                            "Data" => item
+                            "Data" => item.Data
                         }
                     )
                 }
