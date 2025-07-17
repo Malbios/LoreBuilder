@@ -18,35 +18,33 @@ type DragDropTest() =
         
     let cardStack: System.Collections.Generic.List<Card> =
         System.Collections.Generic.List ()
+    
+    override _.CssScope = CssScopes.LoreBuilder
         
     override this.Render() =
         
-        div {
-            attr.``class`` "content"
+        comp<RadzenStack> {
+            "Orientation" => Orientation.Vertical
             
-            comp<RadzenStack> {
-                "Orientation" => Orientation.Vertical
+            comp<Dropzone<Card>> {
+                "Items" => cardList
                 
-                comp<Dropzone<Card>> {
-                    "Items" => cardList
-                    
-                    attr.fragmentWith "ChildContent" (fun (card: Card) ->
-                        comp<Components.Card> {
-                            "Data" => card
-                        }
-                    )
-                }
+                attr.fragmentWith "ChildContent" (fun (card: Card) ->
+                    comp<Components.Card> {
+                        "Data" => card
+                    }
+                )
+            }
+            
+            comp<Dropzone<Card>> {
+                "Class" => "card-stack"
+                "MaxItems" => 1
+                "Items" => cardStack
                 
-                comp<Dropzone<Card>> {
-                    "Class" => "card-stack"
-                    "MaxItems" => 1
-                    "Items" => cardStack
-                    
-                    attr.fragmentWith "ChildContent" (fun (card: Card) ->
-                        comp<Components.Card> {
-                            "Data" => card
-                        }
-                    )
-                }
+                attr.fragmentWith "ChildContent" (fun (card: Card) ->
+                    comp<Components.Card> {
+                        "Data" => card
+                    }
+                )
             }
         }

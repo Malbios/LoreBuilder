@@ -5,11 +5,13 @@ open Bolero.Html
 open Bolero.Node
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
+open Microsoft.Extensions.Logging
 
 type Card() =
     inherit Component()
     
     let svgCardTypeLabel textColor cardType =
+        
         """
 <svg viewBox="0 0 100 100">
  	<defs>
@@ -83,6 +85,28 @@ type Card() =
             
             div {
                 attr.``class`` "category"
+                attr.style "top: 63%; left: 50%; transform: translate(-50%, -50%) rotate(0deg);"
+                
+                svgCardTypeLabel cardVisuals.FrontTextColor cardVisuals.Type
+            }
+            
+            div {
+                attr.``class`` "category"
+                attr.style "top: 50%; left: 38%; transform: translate(-50%, -50%) rotate(90deg);"
+                
+                svgCardTypeLabel cardVisuals.FrontTextColor cardVisuals.Type
+            }
+            
+            div {
+                attr.``class`` "category"
+                attr.style "top: 38%; left: 50%; transform: translate(-50%, -50%) rotate(180deg);"
+                
+                svgCardTypeLabel cardVisuals.FrontTextColor cardVisuals.Type
+            }
+            
+            div {
+                attr.``class`` "category"
+                attr.style "top: 50%; left: 63%; transform: translate(-50%, -50%) rotate(270deg);"
                 
                 svgCardTypeLabel cardVisuals.FrontTextColor cardVisuals.Type
             }
@@ -118,8 +142,13 @@ type Card() =
             
             cardCenter cardVisuals
         }
+        
+    let mutable rotation = 0
     
     override _.CssScope = CssScopes.Card
+    
+    [<Inject>]
+    member val Logger : ILogger<Card> = Unchecked.defaultof<_> with get, set
     
     [<Parameter>]
     member val Data: LoreBuilder.Model.Card = Card.empty with get, set
@@ -133,36 +162,70 @@ type Card() =
     [<Parameter>]
     member val IsFlipped: bool = false with get, set
     
+    [<Parameter>]
+    member val IsHovered: bool = false with get, set
+    
     member private this.FlippedClass () =
-        if this.IsFlipped then " flipped" else ""
+        if this.IsFlipped then " flipped-card" else ""
 
     override this.Render() =
         
+        let flip _ =
+            if not this.Placeholder then
+                this.IsFlipped <- not this.IsFlipped
+                
+        let rotateClockwise _ =
+            rotation <- rotation + 90
+            
+        let rotateCounterClockwise _ =
+            rotation <- rotation - 90
+            
         let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
+        let controlColor = if this.IsFlipped then cardVisuals.BackTextColor else cardVisuals.FrontTextColor
+                
+        let arrowWidget className rotate icon =
+            let arrowVisibility =
+                if this.IsHovered then
+                    "visibility: visible; opacity: 1; transition: opacity 0.6s ease;"
+                else
+                    "visibility: hidden; opacity: 0; transition: opacity 0.6s ease;"
+                
+            div {
+                attr.``class`` $"arrow {className}"
+                attr.style $"{arrowVisibility}color: {controlColor};"
+                
+                on.click rotate
+                on.stopPropagation "click" true
+                
+                i { attr.``class`` $"fa-solid {icon}" }
+            }
+        
         div {
-            attr.style $"width: {this.Size}px; height: {this.Size}px;"
+            attr.style $"width: {this.Size}px; height: {this.Size}px; position: relative;"
+                    
+            on.mouseover (fun _ -> this.IsHovered <- true)
+            on.mouseout (fun _ -> this.IsHovered <- false)
             
-            cond this.Placeholder
-            <| function
-                | true ->
-                    div {
-                        attr.``class`` "card"
-                        
+            div {
+                attr.``class`` "flippable-card-container"
+                attr.style $"transform: rotate({rotation}deg); transition: transform 0.3s ease;"
+                
+                on.click flip
+                
+                div {
+                    attr.``class`` $"card{this.FlippedClass ()}"
+                    
+                    if this.Placeholder then
                         cardPlaceholder cardVisuals
-                    }
-                | false ->
-                    div {
-                        attr.``class`` $"card-flip{this.FlippedClass ()}"
-                            
-                        on.click (fun _ -> this.IsFlipped <- not this.IsFlipped)
+                    else
+                        cardFront cardVisuals this.Data.Front
                         
-                        div {
-                            attr.``class`` "card"
-                            
-                            cardFront cardVisuals this.Data.Front
-                            
-                            cardBack cardVisuals this.Data.Back
-                        }
-                    }
+                        cardBack cardVisuals this.Data.Back
+                }
+            }
+                
+            arrowWidget "arrow-left" rotateCounterClockwise "fa-rotate-left"
+                
+            arrowWidget "arrow-right" rotateClockwise "fa-rotate-right"
         }

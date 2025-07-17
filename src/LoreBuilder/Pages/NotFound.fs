@@ -6,6 +6,8 @@ open Radzen.Blazor
 
 type NotFound() =
     inherit Component()
+    
+    override _.CssScope = CssScopes.LoreBuilder
 
     override this.Render() =
         

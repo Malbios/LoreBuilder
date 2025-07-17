@@ -5,10 +5,6 @@
 
 /* dropzone style */
 .plk-dd-dropzone {
-    /*display: flex;*/
-    /*flex-wrap: wrap;*/
-    /*flex-direction: row;*/
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,12 +16,11 @@
 /* drag drop styles */
 
 .plk-dd-spacing {
-    /*height: 10px;*/
     display: none;
 }
 
 .plk-dd-spacing-dragged-over {
-    /*padding: 25px;*/
+    
 }
 
 .plk-dd-dragged-over {

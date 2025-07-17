@@ -28,15 +28,19 @@ type ClientApplication() =
             concat {
                 comp<RadzenComponents>
         
-                cond model.Page
-                <| function
-                    | Page.Root -> comp<Pages.Root> { attr.empty() }
-                    | Page.NotFound -> comp<Pages.NotFound> { attr.empty() }
-                    | Page.HoverTest -> ecomp<Pages.HoverTest,_,_> model.HoverTest hoverTestDispatch { attr.empty() }
-                    | Page.CardTest -> comp<Pages.CardTest> { attr.empty() }
-                    | Page.DragDropTest -> comp<Pages.DragDropTest> { attr.empty() }
-                    | Page.StackTest -> comp<Pages.StackTest> { attr.empty() }
-                    | Page.LoreClusterTest -> comp<Pages.LoreClusterTest> { attr.empty() }
+                div {
+                    attr.style "margin: 1rem;"
+                    
+                    cond model.Page
+                    <| function
+                        | Page.Root -> comp<Pages.Root> { attr.empty() }
+                        | Page.NotFound -> comp<Pages.NotFound> { attr.empty() }
+                        | Page.HoverTest -> ecomp<Pages.HoverTest,_,_> model.HoverTest hoverTestDispatch { attr.empty() }
+                        | Page.CardTest -> comp<Pages.CardTest> { attr.empty() }
+                        | Page.DragDropTest -> comp<Pages.DragDropTest> { attr.empty() }
+                        | Page.StackTest -> comp<Pages.StackTest> { attr.empty() }
+                        | Page.LoreClusterTest -> comp<Pages.LoreClusterTest> { attr.empty() }
+                }
             }
         }
 

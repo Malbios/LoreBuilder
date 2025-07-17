@@ -6,52 +6,73 @@ open Bolero.Html
 open FunSharp.Common
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
+open Microsoft.Extensions.Logging
 open Plk.Blazor.DragDrop
-open Radzen
-open Radzen.Blazor
 
 type LoreCluster() =
     inherit Component()
     
-    override this.CssScope = CssScopes.LoreCluster
+    // TODO: implement a lore cluster
     
-    [<Parameter>]
-    member val Cards: Card list = List.empty with get, set
+    let droppedCards = System.Collections.Generic.List<Card>()
     
-    [<Parameter>]
-    member val OnDrop: Card -> unit = ignore with get, set
+    override _.CssScope = CssScopes.LoreCluster
+    
+    [<Inject>]
+    member val Logger : ILogger<LoreCluster> = Unchecked.defaultof<_> with get, set
+    
+    (*
+.stack-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  width: 270px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  background: #3A2178;
+}
+
+.overlap {
+  margin-top: -30%; /* pull upward */
+  background: #C2B452;
+  z-index: -1;
+}
+    *)
 
     override this.Render() =
         
-        let cardStack =
-            this.Cards
-            |> ResizeArray
-            |> System.Collections.Generic.List
+        let onDrop card =
+            this.Logger.LogInformation $"card dropped: {card.Id} ({Union.toString card.Type})"
             
-        let themedText cardType (text: string) =
-            let cardVisuals = CardVisuals.fromCardType cardType
+        concat {
+            div {
+                let dottedBorder =
+                    if droppedCards.Count = 0 then
+                        " border: 2px dotted black;"
+                    else
+                        ""
+                                    
+                attr.style $"width: 270px; height: 270px;{dottedBorder}"
+                
+                comp<Dropzone<Card>> {
+                    "Items" => droppedCards
+                    "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // TODO: handle 'target could be null'
+                    "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
+                }
+            }
             
             div {
-                attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor}; text-align: center;"
+                let card = droppedCards |> Seq.toList |> List.tryHead |> Option.defaultValue Card.empty
                 
-                text
-            }
-            
-        comp<RadzenStack> {
-            "Orientation" => Orientation.Horizontal
-            
-            comp<Dropzone<Card>> {
-                "Class" => "lore-cluster-dropzone"
-                "Items" => cardStack
-                "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // TODO: handle 'target could be null'
-                "CopyItem" => Func<Card, Card>(fun card -> { card with Type = card.Type })
-                "OnItemDrop" => EventCallbackFactory().Create(this, this.OnDrop)
-            }
-            
-            comp<RadzenStack> {
-                "Orientation" => Orientation.Vertical
+                attr.style ""
                 
-                for card in this.Cards do
-                    themedText card.Type $"{card.Id} ({Union.toString card.Type})"
+                comp<LoreBuilder.Components.Card> {
+                    "Data" => card
+                    "Size" => 270
+                }
             }
         }

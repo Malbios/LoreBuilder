@@ -50,68 +50,64 @@ type StackTest() =
             this.Logger.LogInformation $"card dropped: {card.Id} ({Union.toString card.Type})"
             droppedCards.Insert(0, card)
         
-        div {
-            attr.``class`` "content"
+        comp<RadzenStack> {
+            "Orientation" => Orientation.Horizontal
+            "Gap" => "0.5rem"
+            
+            div {
+                attr.style "display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;"
+                
+                for card in cards do
+                    comp<CardStack> {
+                        "Size" => 110
+                        "Cards" => [card]
+                    }
+            }
             
             comp<RadzenStack> {
-                "Orientation" => Orientation.Horizontal
-                "Gap" => "0.5rem"
+                "Orientation" => Orientation.Vertical
+                "Gap" => "1rem"
                 
                 div {
-                    attr.style "display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;"
+                    let dropzoneList = dropzoneList ()
                     
-                    for card in cards do
-                        comp<CardStack> {
-                            "Size" => 110
-                            "Cards" => [card]
-                        }
-                }
-                
-                comp<RadzenStack> {
-                    "Orientation" => Orientation.Vertical
-                    "Gap" => "1rem"
-                    
-                    div {
-                        let dropzoneList = dropzoneList ()
+                    let dottedBorder =
+                        if dropzoneList.Count = 0 then
+                            " border: 2px dotted black;"
+                        else
+                            ""
                         
-                        let dottedBorder =
-                            if dropzoneList.Count = 0 then
-                                " border: 2px dotted black;"
-                            else
-                                ""
-                            
-                        attr.style $"width: 270px; height: 270px;{dottedBorder}"
-                        
-                        comp<Dropzone<Card>> {
-                            "Items" => dropzoneList
-                            "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // TODO: handle 'target could be null'
-                            "CopyItem" => Func<Card, Card>(Card.copy) 
-                            "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
-                            
-                            attr.fragmentWith "ChildContent" (fun (card: Card) ->
-                                comp<LoreBuilder.Components.Card> {
-                                    "Data" => card
-                                    "Size" => 270
-                                }
-                            )
-                        }
-                    }
+                    attr.style $"width: 270px; height: 270px;{dottedBorder}"
                     
-                    comp<RadzenButton> {
-                        let onClick (_: MouseEventArgs) =
-                            droppedCards.Clear()
-                            
-                        "Text" => "Clear"
-                        "Click" => EventCallback.Factory.Create<MouseEventArgs>(this, onClick)
+                    comp<Dropzone<Card>> {
+                        "Items" => dropzoneList
+                        "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // TODO: handle 'target could be null'
+                        "CopyItem" => Func<Card, Card>(Card.copy) 
+                        "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
+                        
+                        attr.fragmentWith "ChildContent" (fun (card: Card) ->
+                            comp<LoreBuilder.Components.Card> {
+                                "Data" => card
+                                "Size" => 270
+                            }
+                        )
                     }
                 }
                 
-                comp<RadzenStack> {
-                    "Orientation" => Orientation.Vertical
-                    "Gap" => "0.5rem"
-                    
-                    for card in droppedCards do
-                        themedText card.Type $"{card.Id} ({Union.toString card.Type})"
+                comp<RadzenButton> {
+                    let onClick (_: MouseEventArgs) =
+                        droppedCards.Clear()
+                        
+                    "Text" => "Clear"
+                    "Click" => EventCallback.Factory.Create<MouseEventArgs>(this, onClick)
                 }
+            }
+            
+            comp<RadzenStack> {
+                "Orientation" => Orientation.Vertical
+                "Gap" => "0.5rem"
+                
+                for card in droppedCards do
+                    themedText card.Type $"{card.Id} ({Union.toString card.Type})"
             }
         }

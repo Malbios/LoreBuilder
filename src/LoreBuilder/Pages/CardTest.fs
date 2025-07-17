@@ -10,19 +10,18 @@ open LoreBuilder
 type CardTest() =
     inherit Component()
     
+    override _.CssScope = CssScopes.LoreBuilder
+    
     override this.Render() =
         
-        div {
-            attr.``class`` "content"
+        comp<RadzenStack> {
+            "Orientation" => Orientation.Horizontal
+            "Wrap" => FlexWrap.Wrap
+            "Gap" => "1rem"
             
-            comp<RadzenStack> {
-                "Orientation" => Orientation.Horizontal
-                "Wrap" => FlexWrap.Wrap
-                "Gap" => "1rem"
-                
-                for card in Utils.cards do
-                    comp<Card> {
-                        "Data" => card
-                    }
-            }
+            for card in Utils.cards do
+                comp<Card> {
+                    "Size" => 270
+                    "Data" => card
+                }
         }

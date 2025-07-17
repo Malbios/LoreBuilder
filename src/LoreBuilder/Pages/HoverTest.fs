@@ -12,44 +12,43 @@ open Radzen.Blazor
 type HoverTest() =
     inherit ElmishComponent<HoverTest.State, HoverTest.Message>()
     
+    override _.CssScope = CssScopes.LoreBuilder
+    
     override this.ShouldRender(oldModel, newModel) =
         
         oldModel.HoverText <> newModel.HoverText
 
     override this.View model dispatch =
         
-        div {
-            attr.``class`` "center-wrapper"
-
+        comp<RadzenStack> {
+            "Orientation" => Orientation.Vertical
+            
             comp<RadzenStack> {
-                "Orientation" => Orientation.Vertical
+                "Orientation" => Orientation.Horizontal
+
+                comp<HoverArea> {
+                    "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 1")
+                    "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
+                }
+
+                comp<HoverArea> {
+                    "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 2")
+                    "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
+                }
+
+                comp<HoverArea> {
+                    "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 3")
+                    "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
+                }
+            }
+
+            div {
+                attr.style "text-align: center;"
                 
-                comp<RadzenStack> {
-                    "Orientation" => Orientation.Horizontal
-
-                    comp<HoverArea> {
-                        "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 1")
-                        "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
-                    }
-
-                    comp<HoverArea> {
-                        "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 2")
-                        "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
-                    }
-
-                    comp<HoverArea> {
-                        "OnMouseOver" => fun () -> dispatch (HoverTest.Message.SetHoverText "Item 3")
-                        "OnMouseOut" => fun () -> dispatch HoverTest.Message.ClearHoverText
-                    }
-                }
-
-                div {
-                    attr.``class`` "center-text"
-                    
-                    cond (System.String.IsNullOrWhiteSpace model.HoverText) <| function
-                        | true -> p { "<hover over a tile>" }
-                        | false -> p { model.HoverText }
-                }
+                cond (System.String.IsNullOrWhiteSpace model.HoverText)
+                <| function
+                    | true -> p { "<hover over a tile>" }
+                    | false -> p { model.HoverText }
             }
         }
 

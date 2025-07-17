@@ -6,6 +6,8 @@ open Radzen.Blazor
 
 type Root() =
     inherit Component()
+    
+    override _.CssScope = CssScopes.LoreBuilder
 
     override this.Render() =
         
@@ -22,5 +24,7 @@ type Root() =
                     "ShowValue" => false
                     "Mode" => Radzen.ProgressBarMode.Indeterminate
                 }
+                
+                // TODO: after a second or two, the page should reload with a link list for all test pages
             }
         }
