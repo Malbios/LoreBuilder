@@ -21,9 +21,6 @@ type ClientApplication() =
         
         let hoverTestDispatch message =
             dispatch (Application.Message.HoverTestMsg message)
-            
-        let stackTestDispatch message =
-            dispatch (Application.Message.StackTestMsg message)
         
         div {
             attr.``class`` (Union.toString (currentTheme model))
@@ -38,7 +35,8 @@ type ClientApplication() =
                     | Page.HoverTest -> ecomp<Pages.HoverTest,_,_> model.HoverTest hoverTestDispatch { attr.empty() }
                     | Page.CardTest -> comp<Pages.CardTest> { attr.empty() }
                     | Page.DragDropTest -> comp<Pages.DragDropTest> { attr.empty() }
-                    | Page.StackTest -> ecomp<Pages.StackTest,_,_> model.StackTest stackTestDispatch { attr.empty() }
+                    | Page.StackTest -> comp<Pages.StackTest> { attr.empty() }
+                    | Page.LoreClusterTest -> comp<Pages.LoreClusterTest> { attr.empty() }
             }
         }
 

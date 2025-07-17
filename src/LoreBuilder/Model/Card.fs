@@ -3,6 +3,7 @@ namespace LoreBuilder.Model
 open System
 open FunSharp.Common
 
+[<RequireQualifiedAccess>]
 type CardType =
     | Unknown
     | Faction
@@ -22,53 +23,53 @@ module CardType =
     let themeColor cardType =
         
         match cardType with
-        | Unknown -> "#FF00FF"
-        | Faction -> "#543A7A"
-        | Figure -> "#C68C2E"
-        | Event -> "#AC3E5D"
-        | Location -> "#995735"
-        | Object -> "#5A9BD2"
-        | Creature -> "#06B7A2"
-        | Material -> "#EA6F5A"
-        | Deity -> "#C2B452"
-        | Emblem -> "#F7F7FA"
-        | Modifier -> "#FFFFFF"
+        | CardType.Unknown -> "#FF00FF"
+        | CardType.Faction -> "#543A7A"
+        | CardType.Figure -> "#C68C2E"
+        | CardType.Event -> "#AC3E5D"
+        | CardType.Location -> "#995735"
+        | CardType.Object -> "#5A9BD2"
+        | CardType.Creature -> "#06B7A2"
+        | CardType.Material -> "#EA6F5A"
+        | CardType.Deity -> "#C2B452"
+        | CardType.Emblem -> "#F7F7FA"
+        | CardType.Modifier -> "#FFFFFF"
 
     let iconColor cardType =
         
         match cardType with
-        | Emblem
-        | Modifier -> "#000000"
+        | CardType.Emblem
+        | CardType.Modifier -> "#000000"
         | _ -> themeColor cardType
 
     let frontTextColor cardType =
         
         match cardType with
-        | Emblem
-        | Modifier -> "#000000"
+        | CardType.Emblem
+        | CardType.Modifier -> "#000000"
         | _ -> "#FFFFFF"
         
     let backTextColor cardType =
         
         match cardType with
-        | Emblem
-        | Modifier -> "#000000"
+        | CardType.Emblem
+        | CardType.Modifier -> "#000000"
         | _ -> themeColor cardType
 
     let icon cardType =
         
         match cardType with
-        | Unknown -> "fa-circle-question"
-        | Faction -> "fa-users"
-        | Figure -> "fa-user"
-        | Event -> "fa-clock"
-        | Location -> "fa-compass"
-        | Object -> "fa-anchor"
-        | Creature -> "fa-paw"
-        | Material -> "fa-recycle"
-        | Deity -> "fa-eye"
-        | Emblem -> "fa-shield-cat"
-        | Modifier -> "fa-masks-theater"
+        | CardType.Unknown -> "fa-circle-question"
+        | CardType.Faction -> "fa-users"
+        | CardType.Figure -> "fa-user"
+        | CardType.Event -> "fa-clock"
+        | CardType.Location -> "fa-compass"
+        | CardType.Object -> "fa-anchor"
+        | CardType.Creature -> "fa-paw"
+        | CardType.Material -> "fa-recycle"
+        | CardType.Deity -> "fa-eye"
+        | CardType.Emblem -> "fa-shield-cat"
+        | CardType.Modifier -> "fa-masks-theater"
         
 type Sides = {
     Top: string
@@ -85,13 +86,6 @@ module Sides =
         Bottom = String.empty
         Left = String.empty
     }
-
-type CardData = {
-    Id: Guid
-    Type: CardType
-    Front: Sides
-    Back: Sides
-}
 
 type CardVisuals = {
     ThemeColor: string
@@ -113,7 +107,14 @@ module CardVisuals =
         Type = Union.toString cardType
     }
 
-module CardData =
+type Card = {
+    Id: Guid
+    Type: CardType
+    Front: Sides
+    Back: Sides
+}
+
+module Card =
     
     let empty = {
         Id = Guid.Empty
@@ -121,8 +122,7 @@ module CardData =
         Front = Sides.empty
         Back = Sides.empty
     }
-
-type Card = {
-    IsFlipped: bool
-    Data: CardData
-}
+    
+    let copy (card: Card) = {
+        card with Type = card.Type
+    }

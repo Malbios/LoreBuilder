@@ -10,3 +10,4 @@ type Page =
     | [<EndPoint "/CardTest">] CardTest
     | [<EndPoint "/DragDropTest">] DragDropTest
     | [<EndPoint "/StackTest">] StackTest
+    | [<EndPoint "/LoreClusterTest">] LoreClusterTest

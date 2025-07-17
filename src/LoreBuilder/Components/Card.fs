@@ -109,14 +109,29 @@ type Card() =
             
             cardCenter cardVisuals
         }
+        
+    let cardPlaceholder cardVisuals =
+        
+        div {
+            attr.``class`` "card-placeholder"
+            attr.style $"background-color: {cardVisuals.ThemeColor};"
+            
+            cardCenter cardVisuals
+        }
     
     override _.CssScope = CssScopes.Card
     
     [<Parameter>]
-    member val IsFlipped: bool = false with get, set
+    member val Data: LoreBuilder.Model.Card = Card.empty with get, set
     
     [<Parameter>]
-    member val Data: CardData = CardData.empty with get, set
+    member val Size: int = 0 with get, set
+    
+    [<Parameter>]
+    member val Placeholder: bool = false with get, set
+    
+    [<Parameter>]
+    member val IsFlipped: bool = false with get, set
     
     member private this.FlippedClass () =
         if this.IsFlipped then " flipped" else ""
@@ -126,15 +141,28 @@ type Card() =
         let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
         div {
-            attr.``class`` $"card-flip{this.FlippedClass ()}"
-                
-            on.click (fun _ -> this.IsFlipped <- not this.IsFlipped)
+            attr.style $"width: {this.Size}px; height: {this.Size}px;"
             
-            div {
-                attr.``class`` "card"
-                
-                cardFront cardVisuals this.Data.Front
-                
-                cardBack cardVisuals this.Data.Back
-            }
+            cond this.Placeholder
+            <| function
+                | true ->
+                    div {
+                        attr.``class`` "card"
+                        
+                        cardPlaceholder cardVisuals
+                    }
+                | false ->
+                    div {
+                        attr.``class`` $"card-flip{this.FlippedClass ()}"
+                            
+                        on.click (fun _ -> this.IsFlipped <- not this.IsFlipped)
+                        
+                        div {
+                            attr.``class`` "card"
+                            
+                            cardFront cardVisuals this.Data.Front
+                            
+                            cardBack cardVisuals this.Data.Back
+                        }
+                    }
         }

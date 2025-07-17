@@ -13,7 +13,6 @@ type DragDropTest() =
     
     let cardList: System.Collections.Generic.List<Card> =
         Utils.cards
-        |> List.map (fun cardData -> { IsFlipped = false; Data = cardData })
         |> ResizeArray
         |> System.Collections.Generic.List
         
@@ -31,10 +30,9 @@ type DragDropTest() =
                 comp<Dropzone<Card>> {
                     "Items" => cardList
                     
-                    attr.fragmentWith "ChildContent" (fun (item: Card) ->
+                    attr.fragmentWith "ChildContent" (fun (card: Card) ->
                         comp<Components.Card> {
-                            "IsFlipped" => item.IsFlipped
-                            "Data" => item.Data
+                            "Data" => card
                         }
                     )
                 }
@@ -44,9 +42,9 @@ type DragDropTest() =
                     "MaxItems" => 1
                     "Items" => cardStack
                     
-                    attr.fragmentWith "ChildContent" (fun (item: Card) ->
+                    attr.fragmentWith "ChildContent" (fun (card: Card) ->
                         comp<Components.Card> {
-                            "Data" => item.Data
+                            "Data" => card
                         }
                     )
                 }

@@ -15,7 +15,7 @@ module Utils =
         items |> List.item index
 
     
-    let randomSideText () =
+    let private randomSideText () =
         
         [
             "A Writer"

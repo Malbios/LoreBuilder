@@ -21,7 +21,3 @@ module Update =
         | Application.Message.HoverTestMsg message ->
             let subModel, cmd = HoverTest.update message model.HoverTest
             { model with HoverTest = subModel }, cmd
-
-        | Application.StackTestMsg message ->
-            let subModel, cmd = StackTest.update logger message model.StackTest
-            { model with StackTest = subModel }, cmd

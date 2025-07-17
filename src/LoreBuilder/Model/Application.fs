@@ -19,7 +19,6 @@ module Application =
         Page: Page
         UserSettings: UserSettings
         HoverTest: HoverTest.State
-        StackTest: StackTest.State
     }
 
     module State =
@@ -28,7 +27,6 @@ module Application =
             Page = Page.Root
             UserSettings = UserSettings.initial
             HoverTest = HoverTest.State.initial
-            StackTest = StackTest.State.initial
         }
 
     type Message =
@@ -36,4 +34,3 @@ module Application =
         | SetPage of Page
         | SetThemeMode of ThemeMode
         | HoverTestMsg of HoverTest.Message
-        | StackTestMsg of StackTest.Message
