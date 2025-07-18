@@ -23,19 +23,18 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="LoreBuilder.bolero.css" />
     <Compile Include="Routes.fs" />
     <Compile Include="Model\Common.fs" />
     <Compile Include="Model\Card.fs" />
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Utils.fs" />
-    <None Include="Components\Card.bolero.css" />
     <Compile Include="Components\Card.fs" />
-    <None Include="Components\CardStack.bolero.css" />
+    <None Include="Components\Card.bolero.css" />
     <Compile Include="Components\CardStack.fs" />
-    <None Include="Components\LoreCluster.bolero.css" />
+    <None Include="Components\CardStack.bolero.css" />
     <Compile Include="Components\LoreCluster.fs" />
+    <None Include="Components\LoreCluster.bolero.css" />
     <Compile Include="Pages\Root.fs" />
     <Compile Include="Pages\NotFound.fs" />
     <Compile Include="Pages\HoverTest.fs" />
@@ -45,6 +44,7 @@
     <Compile Include="Pages\LoreClusterTest.fs" />
     <Compile Include="Update.fs" />
     <Compile Include="Main.fs" />
+    <None Include="LoreBuilder.bolero.css" />
     <Compile Include="Startup.fs" />
   </ItemGroup>
 </Project>

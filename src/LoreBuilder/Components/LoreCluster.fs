@@ -59,20 +59,55 @@ type LoreCluster() =
                 attr.style $"width: 270px; height: 270px;{dottedBorder}"
                 
                 comp<Dropzone<Card>> {
+                    "MaxItems" => 5
                     "Items" => droppedCards
                     "Accepts" => Func<Card, Card, bool>(fun dragged target -> true) // TODO: handle 'target could be null'
                     "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
                 }
             }
             
+            let cards = [
+                for n in [1..5] ->
+                    droppedCards
+                    |> Seq.toList
+                    |> List.trySkip (n-1)
+                    |> List.tryHead
+                    |> Option.defaultValue Card.empty
+            ]
+            
+            let cardsWithStyle =
+                cards
+                |> List.mapi (fun index card ->
+                    let className =
+                        match index with
+                        | 0 -> "center"
+                        | 1 -> "bottom"
+                        | 2 -> "left"
+                        | 3 -> "top"
+                        | 4 -> "right"
+                        | _ -> failwith $"unexpected index in this lore cluster: {index}"
+                        
+                    div {
+                        attr.``class`` className
+                    
+                        if card <> Card.empty then
+                            comp<LoreBuilder.Components.Card> {
+                                "Data" => card
+                                "Size" => 270
+                            }
+                        else
+                            div {
+                                attr.style "width: 270px; height: 270px;"
+                            }
+                    }
+                )
+            
             div {
-                let card = droppedCards |> Seq.toList |> List.tryHead |> Option.defaultValue Card.empty
+                attr.``class`` "cluster"
                 
-                attr.style ""
-                
-                comp<LoreBuilder.Components.Card> {
-                    "Data" => card
-                    "Size" => 270
+                concat {
+                    for card in cardsWithStyle do
+                        yield card
                 }
             }
         }

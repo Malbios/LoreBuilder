@@ -1,0 +1,37 @@
+.cluster {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 270px;
+    height: 270px;
+    margin: 40px;
+}
+
+.center {
+    position: absolute;
+}
+
+.bottom {
+    position: absolute;
+    z-index: -1;
+    bottom: -40px;
+}
+
+.left {
+    position: absolute;
+    z-index: -2;
+    left: -40px;
+}
+
+.top {
+    position: absolute;
+    z-index: -3;
+    top: -40px;
+}
+
+.right {
+    position: absolute;
+    z-index: -4;
+    right: -40px;
+}

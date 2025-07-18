@@ -142,8 +142,11 @@ type Card() =
             
             cardCenter cardVisuals
         }
-        
+    
     let mutable rotation = 0
+    let mutable isFlipped = false
+    let mutable isHovered = false
+    let mutable isFlipping = false
     
     override _.CssScope = CssScopes.Card
     
@@ -159,20 +162,14 @@ type Card() =
     [<Parameter>]
     member val Placeholder: bool = false with get, set
     
-    [<Parameter>]
-    member val IsFlipped: bool = false with get, set
-    
-    [<Parameter>]
-    member val IsHovered: bool = false with get, set
-    
     member private this.FlippedClass () =
-        if this.IsFlipped then " flipped-card" else ""
+        if isFlipped then " flipped-card" else ""
 
     override this.Render() =
         
         let flip _ =
             if not this.Placeholder then
-                this.IsFlipped <- not this.IsFlipped
+                isFlipped <- not isFlipped
                 
         let rotateClockwise _ =
             rotation <- rotation + 90
@@ -182,14 +179,16 @@ type Card() =
             
         let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
-        let controlColor = if this.IsFlipped then cardVisuals.BackTextColor else cardVisuals.FrontTextColor
+        let controlColor = if isFlipped then cardVisuals.BackTextColor else cardVisuals.FrontTextColor
                 
         let arrowWidget className rotate icon =
             let arrowVisibility =
-                if this.IsHovered then
-                    "visibility: visible; opacity: 1; transition: opacity 0.6s ease;"
+                if not isFlipping && isHovered then
+                    // "visibility: visible; opacity: 1; transition: opacity 0.6s ease;"
+                    "visibility: visible; opacity: 1;"
                 else
-                    "visibility: hidden; opacity: 0; transition: opacity 0.6s ease;"
+                    // "visibility: hidden; opacity: 0; transition: opacity 0.6s ease;"
+                    "visibility: hidden; opacity: 0;"
                 
             div {
                 attr.``class`` $"arrow {className}"
@@ -204,8 +203,8 @@ type Card() =
         div {
             attr.style $"width: {this.Size}px; height: {this.Size}px; position: relative;"
                     
-            on.mouseover (fun _ -> this.IsHovered <- true)
-            on.mouseout (fun _ -> this.IsHovered <- false)
+            on.mouseover (fun _ -> isHovered <- true)
+            on.mouseout (fun _ -> isHovered <- false)
             
             div {
                 attr.``class`` "flippable-card-container"
@@ -216,6 +215,9 @@ type Card() =
                 div {
                     attr.``class`` $"card{this.FlippedClass ()}"
                     
+                    on.event "transitionstart" (fun _ -> isFlipping <- true)
+                    on.event "transitionend" (fun _ -> isFlipping <- false)
+                    
                     if this.Placeholder then
                         cardPlaceholder cardVisuals
                     else
@@ -225,7 +227,7 @@ type Card() =
                 }
             }
                 
-            arrowWidget "arrow-left" rotateCounterClockwise "fa-rotate-left"
-                
-            arrowWidget "arrow-right" rotateClockwise "fa-rotate-right"
+            if not this.Placeholder then
+                arrowWidget "arrow-left" rotateCounterClockwise "fa-rotate-left"
+                arrowWidget "arrow-right" rotateClockwise "fa-rotate-right"
         }
