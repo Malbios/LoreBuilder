@@ -15,5 +15,6 @@
         <Compile Include="JsonSerializer.fs" />
         <Compile Include="AsyncResult.fs" />
         <Compile Include="Utils.fs" />
+        <Compile Include="List.fs" />
     </ItemGroup>
 </Project>
