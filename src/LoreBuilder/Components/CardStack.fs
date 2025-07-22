@@ -17,6 +17,12 @@ type CardStack() =
     
     [<Parameter>]
     member val Size: int = 0 with get, set
+    
+    [<Parameter>]
+    member val OnDragStart: unit -> unit = ignore with get, set
+    
+    [<Parameter>]
+    member val OnDragEnd: unit -> unit = ignore with get, set
 
     override this.Render() =
         
@@ -28,8 +34,10 @@ type CardStack() =
             |> System.Collections.Generic.List
         
         comp<Dropzone<Card>> {
-            "Accepts" => Func<Card, Card, bool>(fun _ _ -> false)
             "Items" => cardsForDropzone
+            "Accepts" => Func<Card, Card, bool>(fun _ _ -> false)
+            "DragStart" => Action<Card>(fun _ -> this.OnDragStart())
+            "DragEnd" => Action<Card>(fun _ -> this.OnDragEnd())
             
             attr.fragmentWith "ChildContent" (fun (card: Card) ->
                 comp<LoreBuilder.Components.Card> {

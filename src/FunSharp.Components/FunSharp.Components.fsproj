@@ -12,7 +12,9 @@
       <PackageReference Include="Bolero.Build" Version="0.24.39" />
     </ItemGroup>
     <ItemGroup>
-      <None Include="HoverArea.bolero.css" />
       <Compile Include="HoverArea.fs" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="HoverArea.bolero.css" />
     </ItemGroup>
 </Project>
