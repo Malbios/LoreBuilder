@@ -1,0 +1,42 @@
+.card-badge {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.outer-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+}
+
+.inner-circle {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px;
+    height: 75px;
+    background: white;
+    border-radius: 50%;
+}
+
+.icon {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+}
+
+.category {
+    position: absolute;
+    z-index: 4;
+    width: 100px;
+    height: 100px;
+}

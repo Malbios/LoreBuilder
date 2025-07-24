@@ -1,6 +1,8 @@
 namespace LoreBuilder
 
 open System
+open Bolero
+open Bolero.Html
 open FunSharp.Common
 open LoreBuilder.Model
 
@@ -46,3 +48,8 @@ module Utils =
         
         Union.toList<CardType>()
         |> List.map card
+
+    let renderList (nodes: Node list) =
+        concat {
+            for node in nodes do node
+        }

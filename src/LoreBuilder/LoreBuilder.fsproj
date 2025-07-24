@@ -29,6 +29,10 @@
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Utils.fs" />
+    <Compile Include="Components\CardBadge.fs" />
+    <None Include="Components\CardBadge.bolero.css" />
+    <Compile Include="Components\HiddenCard.fs" />
+    <None Include="Components\HiddenCard.bolero.css" />
     <Compile Include="Components\Card.fs" />
     <None Include="Components\Card.bolero.css" />
     <Compile Include="Components\CardStack.fs" />

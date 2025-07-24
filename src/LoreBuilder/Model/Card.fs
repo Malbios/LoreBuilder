@@ -106,6 +106,8 @@ module CardVisuals =
         IconColor = CardType.iconColor cardType
         Type = Union.toString cardType
     }
+    
+    let empty = fromCardType CardType.Unknown
 
 type Card = {
     Id: Guid

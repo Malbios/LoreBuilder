@@ -40,10 +40,9 @@ type CardStack() =
             "DragEnd" => Action<Card>(fun _ -> this.OnDragEnd())
             
             attr.fragmentWith "ChildContent" (fun (card: Card) ->
-                comp<LoreBuilder.Components.Card> {
+                comp<HiddenCard> {
                     "Data" => card
                     "Size" => this.Size
-                    "Placeholder" => true
                 }
             )
         }

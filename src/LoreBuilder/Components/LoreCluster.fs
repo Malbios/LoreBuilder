@@ -73,7 +73,7 @@ type LoreCluster() =
 
     override this.Render() =
         
-        let accept _ _ = // dropped, target, target could be null
+        let accept _ _ = // dropped, target (target could be null)
             droppedCards.Count < 5
         
         let onDrop card =
