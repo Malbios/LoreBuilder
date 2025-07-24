@@ -77,7 +77,6 @@ type LoreCluster() =
             droppedCards.Count < 5
         
         let onDrop card =
-            this.Logger.LogInformation $"card dropped: {card.Id} ({Union.toString card.Type})"
             droppedCards.Add(card)
         
         div {

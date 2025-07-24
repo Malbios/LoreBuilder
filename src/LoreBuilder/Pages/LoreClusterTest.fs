@@ -14,7 +14,7 @@ open Radzen.Blazor
 type LoreClusterTest() =
     inherit Component()
     
-    let cards = Utils.cards
+    let cards = Utils.allCards
     
     let mutable isDragging = false
     
@@ -37,10 +37,10 @@ type LoreClusterTest() =
             div {
                 attr.style "display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;"
                 
-                for card in cards do
+                for cards in cards do
                     comp<CardStack> {
                         "Size" => 110
-                        "Cards" => [card]
+                        "Cards" => cards
                         "OnDragStart" => fun () ->
                             this.Logger.LogInformation "isDragging <- true"
                             isDragging <- true

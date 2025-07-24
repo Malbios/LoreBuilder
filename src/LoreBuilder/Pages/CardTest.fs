@@ -19,7 +19,7 @@ type CardTest() =
             "Wrap" => FlexWrap.Wrap
             "Gap" => "1rem"
             
-            for card in Utils.cards do
+            for card in Utils.randomCards do
                 comp<Card> {
                     "Size" => 270
                     "Data" => card

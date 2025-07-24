@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "Thinker",
+      "Right": "Reporter",
+      "Bottom": "Recruit",
+      "Left": "Beekeeper"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]

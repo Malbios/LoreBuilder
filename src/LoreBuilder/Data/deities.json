@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "The Lion",
+      "Right": "The Reveler",
+      "Bottom": "The Smuggler",
+      "Left": "The Friend"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]

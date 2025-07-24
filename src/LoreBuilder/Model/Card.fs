@@ -1,6 +1,5 @@
 namespace LoreBuilder.Model
 
-open System
 open FunSharp.Common
 
 [<RequireQualifiedAccess>]
@@ -86,6 +85,11 @@ module Sides =
         Bottom = String.empty
         Left = String.empty
     }
+        
+type FrontAndBack = {
+    Front: Sides
+    Back: Sides
+}
 
 type CardVisuals = {
     ThemeColor: string
@@ -110,7 +114,6 @@ module CardVisuals =
     let empty = fromCardType CardType.Unknown
 
 type Card = {
-    Id: Guid
     Type: CardType
     Front: Sides
     Back: Sides
@@ -119,7 +122,6 @@ type Card = {
 module Card =
     
     let empty = {
-        Id = Guid.Empty
         Type = CardType.Unknown
         Front = Sides.empty
         Back = Sides.empty

@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "Union",
+      "Right": "Battalion",
+      "Bottom": "City",
+      "Left": "College"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "Mosquito",
+      "Right": "Kangaroo",
+      "Bottom": "Dragon",
+      "Left": "Tiger"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]

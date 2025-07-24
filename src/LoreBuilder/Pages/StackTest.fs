@@ -26,7 +26,7 @@ type StackTest() =
             text
         }
         
-    let cards = Utils.cards
+    let cards = Utils.randomCards
     
     let droppedCards = System.Collections.Generic.List<Card>()
     
@@ -47,7 +47,6 @@ type StackTest() =
             list
             
         let onDrop (card: Card) =
-            this.Logger.LogInformation $"card dropped: {card.Id} ({Union.toString card.Type})"
             droppedCards.Insert(0, card)
         
         comp<RadzenStack> {
@@ -108,6 +107,6 @@ type StackTest() =
                 "Gap" => "0.5rem"
                 
                 for card in droppedCards do
-                    themedText card.Type $"{card.Id} ({Union.toString card.Type})"
+                    themedText card.Type $"{Union.toString card.Type}"
             }
         }

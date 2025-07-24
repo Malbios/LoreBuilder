@@ -23,6 +23,28 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
   <ItemGroup>
+    <Content Remove="Data\factions.json" />
+    <EmbeddedResource Include="Data\factions.json" />
+    <Content Remove="Data\figures.json" />
+    <EmbeddedResource Include="Data\figures.json" />
+    <Content Remove="Data\events.json" />
+    <EmbeddedResource Include="Data\events.json" />
+    <Content Remove="Data\locations.json" />
+    <EmbeddedResource Include="Data\locations.json" />
+    <Content Remove="Data\objects.json" />
+    <EmbeddedResource Include="Data\objects.json" />
+    <Content Remove="Data\creatures.json" />
+    <EmbeddedResource Include="Data\creatures.json" />
+    <Content Remove="Data\materials.json" />
+    <EmbeddedResource Include="Data\materials.json" />
+    <Content Remove="Data\deities.json" />
+    <EmbeddedResource Include="Data\deities.json" />
+    <Content Remove="Data\emblems.json" />
+    <EmbeddedResource Include="Data\emblems.json" />
+    <Content Remove="Data\modifiers.json" />
+    <EmbeddedResource Include="Data\modifiers.json" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Routes.fs" />
     <Compile Include="Model\Common.fs" />
     <Compile Include="Model\Card.fs" />

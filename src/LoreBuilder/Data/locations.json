@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "Palace",
+      "Right": "Hangout",
+      "Bottom": "Wellspring",
+      "Left": "Sand Dune"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]

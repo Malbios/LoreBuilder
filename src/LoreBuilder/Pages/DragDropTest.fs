@@ -12,7 +12,7 @@ type DragDropTest() =
     inherit Component()
     
     let cardList: System.Collections.Generic.List<Card> =
-        Utils.cards
+        Utils.randomCards
         |> ResizeArray
         |> System.Collections.Generic.List
         

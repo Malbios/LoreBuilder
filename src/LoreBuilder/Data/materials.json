@@ -1,0 +1,16 @@
+[
+  {
+    "Front": {
+      "Top": "Egg(s)",
+      "Right": "Fabric",
+      "Bottom": "Metal",
+      "Left": "Shard"
+    },
+    "Back": {
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
+    }
+  }
+]
