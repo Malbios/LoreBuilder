@@ -6,94 +6,84 @@ open LoreBuilder
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 
+type CardSide =
+    | Front
+    | Back
+
 type Card() =
     inherit Component()
         
     let cardSides sides =
-        
-        let side (className: string) (text: string) =
-            div {
-                attr.``class`` $"side {className}"
-                
-                text
-            }
-        
         [
             ("top", sides.Top)
             ("bottom", sides.Bottom)
             ("left", sides.Left)
             ("right", sides.Right)
         ]
-        |> List.map (fun x -> side (fst x) (snd x))
+        |> List.map (fun item ->
+            div {
+                attr.``class`` $"side {fst item}"
+                snd item
+            }
+        )
         |> Utils.renderList
-        
-    let cardFront cardVisuals sides =
-        
-        div {
-            attr.``class`` "card-front"
-            attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor};"
-        
-            cardSides sides
-            
-            comp<CardBadge> {
-                "Visuals" => cardVisuals
-            }
-        }
-        
-    let cardBack cardVisuals (sides: Sides) =
-        
-        div {
-            attr.``class`` "card-back"
-            attr.style $"color: {cardVisuals.BackTextColor}; background-color: #FFFFFF;"
-            
-            cardSides sides
-            
-            comp<CardBadge> {
-                "Visuals" => cardVisuals
-            }
-        }
-    
-    let mutable rotation = 0
-    let mutable isFlipped = false
-    let mutable isHovered = false
-    let mutable isFlipping = false
     
     override _.CssScope = CssScopes.Card
     
     [<Parameter>]
-    member val Data: LoreBuilder.Model.Card = Card.empty with get, set
+    member val Data = Card.empty with get, set
     
     [<Parameter>]
-    member val Size: int = 0 with get, set
+    member val CurrentSide = CardSide.Front with get, set
     
     [<Parameter>]
-    member val CanBeFlipped: bool = true with get, set
+    member val Rotation = 0 with get, set
     
     [<Parameter>]
-    member val CanBeRotated: bool = true with get, set
+    member val IsHovered = false with get, set
+    
+    [<Parameter>]
+    member val IsFlipping = false with get, set
+    
+    [<Parameter>]
+    member val CanBeFlipped = true with get, set
+    
+    [<Parameter>]
+    member val CanBeRotated = true with get, set
+    
+    [<Parameter>]
+    member val Size = 0 with get, set
     
     member private this.FlippedClass () =
-        if isFlipped then " flipped-card" else ""
+        match this.CurrentSide with
+        | Front -> ""
+        | Back -> " flipped-card"
 
     override this.Render() =
         
         let flip _ =
             if this.CanBeFlipped then
-                isFlipped <- not isFlipped
+                this.CurrentSide <-
+                    match this.CurrentSide with
+                    | Front -> CardSide.Back
+                    | Back -> CardSide.Front
                 
         let rotateClockwise _ =
-            rotation <- rotation + 90
+            this.Rotation <- this.Rotation + 90
             
         let rotateCounterClockwise _ =
-            rotation <- rotation - 90
+            this.Rotation <- this.Rotation - 90
             
         let cardVisuals = CardVisuals.fromCardType this.Data.Type
         
-        let controlColor = if isFlipped then cardVisuals.BackTextColor else cardVisuals.FrontTextColor
+        let controlColor =
+            match this.CurrentSide with
+            | Front -> cardVisuals.FrontTextColor
+            | Back -> cardVisuals.BackTextColor
                 
         let arrowWidget className rotate icon =
             let arrowVisibility =
-                if this.CanBeRotated && not isFlipping && isHovered then
+                if this.CanBeRotated && not this.IsFlipping && this.IsHovered then
                     "visibility: visible; opacity: 1;"
                 else
                     "visibility: hidden; opacity: 0;"
@@ -111,23 +101,42 @@ type Card() =
         div {
             attr.style $"width: {this.Size}px; height: {this.Size}px; position: relative;"
             
-            on.mouseover (fun _ -> isHovered <- true)
-            on.mouseout (fun _ -> isHovered <- false)
+            on.mouseover (fun _ -> this.IsHovered <- true)
+            on.mouseout (fun _ -> this.IsHovered <- false)
             
             div {
                 attr.``class`` "flippable-card-container"
-                attr.style $"transform: rotate({rotation}deg);"
+                attr.style $"transform: rotate({this.Rotation}deg);"
                 
                 on.click flip
                 
                 div {
                     attr.``class`` $"card{this.FlippedClass ()}"
                     
-                    on.event "transitionstart" (fun _ -> isFlipping <- true)
-                    on.event "transitionend" (fun _ -> isFlipping <- false)
+                    on.event "transitionstart" (fun _ -> this.IsFlipping <- true)
+                    on.event "transitionend" (fun _ -> this.IsFlipping <- false)
                     
-                    cardFront cardVisuals this.Data.Front
-                    cardBack cardVisuals this.Data.Back
+                    div {
+                        attr.``class`` "card-front"
+                        attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor};"
+                    
+                        cardSides this.Data.Front
+                        
+                        comp<CardBadge> {
+                            "Visuals" => cardVisuals
+                        }
+                    }
+                    
+                    div {
+                        attr.``class`` "card-back"
+                        attr.style $"color: {cardVisuals.BackTextColor}; background-color: #FFFFFF;"
+                        
+                        cardSides this.Data.Back
+                        
+                        comp<CardBadge> {
+                            "Visuals" => cardVisuals
+                        }
+                    }
                 }
             }
             

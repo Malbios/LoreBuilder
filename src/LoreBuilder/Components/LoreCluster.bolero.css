@@ -4,11 +4,12 @@
     justify-content: center;
     
     border: 2px dotted black;
+    box-sizing: border-box;
     
-    width: 360px;
-    height: 360px;
-    max-height: 360px;
-    max-width: 360px;
+    width: 440px;
+    height: 440px;
+    max-height: 440px;
+    max-width: 440px;
     
     pointer-events: none;
 }
@@ -21,37 +22,136 @@
     margin: 40px;
 }
 
+.center-dropzone {
+    position: absolute;
+    z-index: 10;
+    width: 270px;
+    height: 270px;
+}
+
 .center {
     position: absolute;
-    z-index: 5;
+    z-index: 9;
     pointer-events: auto;
 }
 
-.bottom {
+.inner_bottom-dropzone {
     position: absolute;
-    z-index: 4;
+    z-index: 10;
+    bottom: -40px;
+    width: 270px;
+    height: 40px;
+}
+
+.inner_bottom {
+    position: absolute;
+    z-index: 8;
     bottom: -40px;
     pointer-events: auto;
 }
 
-.left {
+.outer_bottom-dropzone {
     position: absolute;
-    z-index: 3;
+    z-index: 10;
+    bottom: -80px;
+    width: 270px;
+    height: 40px;
+}
+
+.outer_bottom {
+    position: absolute;
+    z-index: 7;
+    bottom: -80px;
+    pointer-events: auto;
+}
+
+.inner_left-dropzone {
+    position: absolute;
+    z-index: 10;
+    left: -40px;
+    width: 40px;
+    height: 270px;
+}
+
+.inner_left {
+    position: absolute;
+    z-index: 6;
     left: -40px;
     pointer-events: auto;
 }
 
-.top {
+.outer_left-dropzone {
     position: absolute;
-    z-index: 2;
+    z-index: 10;
+    left: -80px;
+    width: 40px;
+    height: 270px;
+}
+
+.outer_left {
+    position: absolute;
+    z-index: 5;
+    left: -80px;
+    pointer-events: auto;
+}
+
+.inner_top-dropzone {
+    position: absolute;
+    z-index: 10;
+    top: -40px;
+    width: 270px;
+    height: 40px;
+}
+
+.inner_top {
+    position: absolute;
+    z-index: 4;
     top: -40px;
     pointer-events: auto;
 }
 
-.right {
+.outer_top-dropzone {
+    position: absolute;
+    z-index: 10;
+    top: -80px;
+    width: 270px;
+    height: 40px;
+}
+
+.outer_top {
+    position: absolute;
+    z-index: 3;
+    top: -80px;
+    pointer-events: auto;
+}
+
+.inner_right-dropzone {
+    position: absolute;
+    z-index: 10;
+    right: -40px;
+    width: 40px;
+    height: 270px;
+}
+
+.inner_right {
+    position: absolute;
+    z-index: 2;
+    right: -40px;
+    pointer-events: auto;
+}
+
+.outer_right-dropzone {
+    position: absolute;
+    z-index: 10;
+    right: -80px;
+    width: 40px;
+    height: 270px;
+}
+
+.outer_right {
     position: absolute;
     z-index: 1;
-    right: -40px;
+    right: -80px;
     pointer-events: auto;
 }
 
@@ -67,4 +167,12 @@
 .blink_me {
     background-color: forestgreen;
     animation: blinker 1s linear infinite;
+}
+
+.auto-pointer {
+    pointer-events: auto;
+}
+
+.no-pointer {
+    pointer-events: none;
 }

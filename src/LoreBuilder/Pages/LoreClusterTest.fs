@@ -2,30 +2,32 @@ namespace LoreBuilder.Pages
 
 open Bolero
 open Bolero.Html
-open FunSharp.Common
 open LoreBuilder
 open LoreBuilder.Components
 open Microsoft.AspNetCore.Components
-open Microsoft.AspNetCore.Components.Web
 open Microsoft.Extensions.Logging
 open Radzen
 open Radzen.Blazor
+
+type private Model = {
+    IsDragging: bool
+}
 
 type LoreClusterTest() =
     inherit Component()
     
     let cards = Utils.allCards
     
-    let mutable isDragging = false
-    
-    let mutable lore = String.empty
+    let mutable model = {
+        IsDragging = false
+    }
     
     override _.CssScope = CssScopes.LoreBuilder
     
     [<Inject>]
-    member val Logger : ILogger<LoreCluster> = Unchecked.defaultof<_> with get, set
+    member val Logger : ILogger<LoreClusterTest> = Unchecked.defaultof<_> with get, set
     
-    member this.TriggerRender() =
+    member this.TriggerReRender() =
         this.StateHasChanged()
     
     override this.Render() =
@@ -35,31 +37,22 @@ type LoreClusterTest() =
             "Gap" => "0.5rem"
             
             div {
-                attr.style "display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;"
+                attr.``class`` "card-stack"
                 
                 for cards in cards do
                     comp<CardStack> {
                         "Size" => 110
                         "Cards" => cards
                         "OnDragStart" => fun () ->
-                            this.Logger.LogInformation "isDragging <- true"
-                            isDragging <- true
-                            this.TriggerRender()
+                            model <- { model with IsDragging = true }
+                            this.TriggerReRender()
                         "OnDragEnd" => fun () ->
-                            this.Logger.LogInformation "isDragging <- false"
-                            isDragging <- false
-                            this.TriggerRender()
+                            model <- { model with IsDragging = false }
+                            this.TriggerReRender()
                     }
             }
             
             comp<LoreCluster> {
-                "DropzoneIsActive" => isDragging
-                "Lore" => lore
-            }
-            
-            comp<RadzenButton> {
-                "Text" => "Print Lore"
-                "Style" => "width: 100px; height: 100px;"
-                "Click" => EventCallback.Factory.Create(this, fun (_: MouseEventArgs) -> printfn $"Lore: {lore}")
+                "DropzonesAreActive" => model.IsDragging
             }
         }
