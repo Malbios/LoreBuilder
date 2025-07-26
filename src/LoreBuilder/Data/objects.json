@@ -1,12 +1,12 @@
 [
   {
-    "Front": {
+    "PrimarySide": {
       "Top": "Bow",
       "Right": "Needle(s)",
       "Bottom": "Circlet",
       "Left": "Stove"
     },
-    "Back": {
+    "SecondarySide": {
       "Top": "Placeholder",
       "Right": "Placeholder",
       "Bottom": "Placeholder",

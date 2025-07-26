@@ -49,7 +49,7 @@ type CardBadge() =
                 attr.``class`` "category"
                 attr.style $"top: {top}; left: {left}; transform: {translate} rotate({rotation}deg);"
                 
-                svgCardTypeLabel this.Visuals.FrontTextColor this.Visuals.Type
+                svgCardTypeLabel this.Visuals.PrimaryTextColor this.Visuals.Type
             }
         
         div {

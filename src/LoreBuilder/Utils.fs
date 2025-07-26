@@ -3,7 +3,6 @@ namespace LoreBuilder
 open System
 open System.Reflection
 open System.IO
-open System.Text.Json.Nodes
 open Bolero
 open Bolero.Html
 open FunSharp.Common
@@ -21,7 +20,7 @@ module Utils =
         items |> List.item index
 
     
-    let private randomSideText () =
+    let private randomCueText () =
         
         [
             "A Writer"
@@ -33,17 +32,17 @@ module Utils =
         
     let randomCard cardType = {
         Type = cardType
-        Front = {
-            Top = randomSideText ()
-            Right = randomSideText ()
-            Bottom = randomSideText ()
-            Left = randomSideText ()
+        PrimarySide = {
+            Top = randomCueText ()
+            Right = randomCueText ()
+            Bottom = randomCueText ()
+            Left = randomCueText ()
         }
-        Back = {
-            Top = randomSideText ()
-            Right = randomSideText ()
-            Bottom = randomSideText ()
-            Left = randomSideText ()
+        SecondarySide = {
+            Top = randomCueText ()
+            Right = randomCueText ()
+            Bottom = randomCueText ()
+            Left = randomCueText ()
         }
     }
 
@@ -59,15 +58,20 @@ module Utils =
         use reader = new StreamReader(stream)
         reader.ReadToEnd()
         
+    type PrimaryAndSecondaryCues = {
+        PrimarySide: Cues
+        SecondarySide: Cues
+    }
+    
     let private cards file cardType =
         
         readEmbeddedJson file 
-        |> JsonConvert.DeserializeObject<FrontAndBack list>
+        |> JsonConvert.DeserializeObject<PrimaryAndSecondaryCues list>
         |> List.map (fun item ->
             {
                 Type = cardType
-                Front = item.Front
-                Back = item.Back
+                PrimarySide = item.PrimarySide
+                SecondarySide = item.SecondarySide
             }
         )
         

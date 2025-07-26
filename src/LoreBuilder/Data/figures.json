@@ -1,12 +1,12 @@
 [
   {
-    "Front": {
+    "PrimarySide": {
       "Top": "Thinker",
       "Right": "Reporter",
       "Bottom": "Recruit",
       "Left": "Beekeeper"
     },
-    "Back": {
+    "SecondarySide": {
       "Top": "Placeholder",
       "Right": "Placeholder",
       "Bottom": "Placeholder",

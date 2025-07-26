@@ -6,23 +6,19 @@ open LoreBuilder
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 
-type CardSide =
-    | Front
-    | Back
-
 type Card() =
     inherit Component()
         
-    let cardSides sides =
+    let cardCues cues =
         [
-            ("top", sides.Top)
-            ("bottom", sides.Bottom)
-            ("left", sides.Left)
-            ("right", sides.Right)
+            ("top", cues.Top)
+            ("bottom", cues.Bottom)
+            ("left", cues.Left)
+            ("right", cues.Right)
         ]
         |> List.map (fun item ->
             div {
-                attr.``class`` $"side {fst item}"
+                attr.``class`` $"cue {fst item}"
                 snd item
             }
         )
@@ -34,7 +30,7 @@ type Card() =
     member val Data = Card.empty with get, set
     
     [<Parameter>]
-    member val CurrentSide = CardSide.Front with get, set
+    member val CurrentSide = CardSide.Primary with get, set
     
     [<Parameter>]
     member val Rotation = 0 with get, set
@@ -56,8 +52,8 @@ type Card() =
     
     member private this.FlippedClass () =
         match this.CurrentSide with
-        | Front -> ""
-        | Back -> " flipped-card"
+        | CardSide.Primary -> ""
+        | CardSide.Secondary -> " flipped-card"
 
     override this.Render() =
         
@@ -65,8 +61,8 @@ type Card() =
             if this.CanBeFlipped then
                 this.CurrentSide <-
                     match this.CurrentSide with
-                    | Front -> CardSide.Back
-                    | Back -> CardSide.Front
+                    | CardSide.Primary -> CardSide.Secondary
+                    | CardSide.Secondary -> CardSide.Primary
                 
         let rotateClockwise _ =
             this.Rotation <- this.Rotation + 90
@@ -74,14 +70,15 @@ type Card() =
         let rotateCounterClockwise _ =
             this.Rotation <- this.Rotation - 90
             
-        let cardVisuals = CardVisuals.fromCardType this.Data.Type
+        let cardVisuals =
+            CardVisuals.fromCardType this.Data.Type
         
         let controlColor =
             match this.CurrentSide with
-            | Front -> cardVisuals.FrontTextColor
-            | Back -> cardVisuals.BackTextColor
+            | CardSide.Primary -> cardVisuals.PrimaryTextColor
+            | CardSide.Secondary -> cardVisuals.SecondaryTextColor
                 
-        let arrowWidget className rotate icon =
+        let arrow className rotate icon =
             let arrowVisibility =
                 if this.CanBeRotated && not this.IsFlipping && this.IsHovered then
                     "visibility: visible; opacity: 1;"
@@ -117,10 +114,10 @@ type Card() =
                     on.event "transitionend" (fun _ -> this.IsFlipping <- false)
                     
                     div {
-                        attr.``class`` "card-front"
-                        attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor};"
+                        attr.``class`` "primary-side"
+                        attr.style $"color: {cardVisuals.PrimaryTextColor}; background-color: {cardVisuals.ThemeColor};"
                     
-                        cardSides this.Data.Front
+                        cardCues this.Data.PrimarySide
                         
                         comp<CardBadge> {
                             "Visuals" => cardVisuals
@@ -128,10 +125,10 @@ type Card() =
                     }
                     
                     div {
-                        attr.``class`` "card-back"
-                        attr.style $"color: {cardVisuals.BackTextColor}; background-color: #FFFFFF;"
+                        attr.``class`` "secondary-side"
+                        attr.style $"color: {cardVisuals.SecondaryTextColor}; background-color: #FFFFFF; border: 2px solid {cardVisuals.SecondaryTextColor};"
                         
-                        cardSides this.Data.Back
+                        cardCues this.Data.SecondarySide
                         
                         comp<CardBadge> {
                             "Visuals" => cardVisuals
@@ -140,6 +137,6 @@ type Card() =
                 }
             }
             
-            arrowWidget "arrow-left" rotateCounterClockwise "fa-rotate-left"
-            arrowWidget "arrow-right" rotateClockwise "fa-rotate-right"
+            arrow "arrow-left" rotateCounterClockwise "fa-rotate-left"
+            arrow "arrow-right" rotateClockwise "fa-rotate-right"
         }

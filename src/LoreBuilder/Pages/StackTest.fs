@@ -21,7 +21,7 @@ type StackTest() =
         let cardVisuals = CardVisuals.fromCardType cardType
         
         div {
-            attr.style $"color: {cardVisuals.FrontTextColor}; background-color: {cardVisuals.ThemeColor}; text-align: center;"
+            attr.style $"color: {cardVisuals.PrimaryTextColor}; background-color: {cardVisuals.ThemeColor}; text-align: center;"
             
             text
         }

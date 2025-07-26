@@ -1,12 +1,12 @@
 [
   {
-    "Front": {
+    "PrimarySide": {
       "Top": "Funeral",
       "Right": "Hurricane",
       "Bottom": "Abdication",
       "Left": "Wave"
     },
-    "Back": {
+    "SecondarySide": {
       "Top": "Placeholder",
       "Right": "Placeholder",
       "Bottom": "Placeholder",

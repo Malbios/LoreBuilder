@@ -3,6 +3,11 @@ namespace LoreBuilder.Model
 open FunSharp.Common
 
 [<RequireQualifiedAccess>]
+type CardSide =
+    | Primary
+    | Secondary
+
+[<RequireQualifiedAccess>]
 type CardType =
     | Unknown
     | Faction
@@ -41,14 +46,14 @@ module CardType =
         | CardType.Modifier -> "#000000"
         | _ -> themeColor cardType
 
-    let frontTextColor cardType =
+    let primaryTextColor cardType =
         
         match cardType with
         | CardType.Emblem
         | CardType.Modifier -> "#000000"
         | _ -> "#FFFFFF"
         
-    let backTextColor cardType =
+    let secondaryTextColor cardType =
         
         match cardType with
         | CardType.Emblem
@@ -70,31 +75,26 @@ module CardType =
         | CardType.Emblem -> "fa-shield-cat"
         | CardType.Modifier -> "fa-masks-theater"
         
-type Sides = {
-    Top: string
-    Right: string
+type Cues = {
     Bottom: string
     Left: string
+    Top: string
+    Right: string
 }
 
-module Sides =
+module Cues =
     
     let empty = {
-        Top = String.empty
-        Right = String.empty
         Bottom = String.empty
         Left = String.empty
+        Top = String.empty
+        Right = String.empty
     }
-        
-type FrontAndBack = {
-    Front: Sides
-    Back: Sides
-}
 
 type CardVisuals = {
     ThemeColor: string
-    FrontTextColor: string
-    BackTextColor: string
+    PrimaryTextColor: string
+    SecondaryTextColor: string
     Icon: string
     IconColor: string
     Type: string
@@ -104,8 +104,8 @@ module CardVisuals =
     
     let fromCardType cardType = {
         ThemeColor = CardType.themeColor cardType
-        FrontTextColor = CardType.frontTextColor cardType
-        BackTextColor = CardType.backTextColor cardType
+        PrimaryTextColor = CardType.primaryTextColor cardType
+        SecondaryTextColor = CardType.secondaryTextColor cardType
         Icon = CardType.icon cardType
         IconColor = CardType.iconColor cardType
         Type = Union.toString cardType
@@ -115,16 +115,16 @@ module CardVisuals =
 
 type Card = {
     Type: CardType
-    Front: Sides
-    Back: Sides
+    PrimarySide: Cues
+    SecondarySide: Cues
 }
 
 module Card =
     
     let empty = {
         Type = CardType.Unknown
-        Front = Sides.empty
-        Back = Sides.empty
+        PrimarySide = Cues.empty
+        SecondarySide = Cues.empty
     }
     
     let copy (card: Card) = {

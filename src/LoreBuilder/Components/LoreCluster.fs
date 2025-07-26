@@ -12,7 +12,7 @@ open Plk.Blazor.DragDrop
 
 [<RequireQualifiedAccess>]
 type ClusterPosition =
-    | Center
+    | Primary
     | Inner_Bottom
     | Outer_Bottom
     | Inner_Left
@@ -27,7 +27,7 @@ module ClusterPosition =
     let fromIndex index =
         
         match index with
-        | 0 -> ClusterPosition.Center
+        | 0 -> ClusterPosition.Primary
         | 1 -> ClusterPosition.Inner_Bottom
         | 2 -> ClusterPosition.Inner_Left
         | 3 -> ClusterPosition.Inner_Top
@@ -41,7 +41,7 @@ module ClusterPosition =
     let toRotation position =
         
         match position with
-        | ClusterPosition.Center
+        | ClusterPosition.Primary
         | ClusterPosition.Inner_Top
         | ClusterPosition.Outer_Top ->
             String.empty
@@ -77,14 +77,14 @@ type LoreCluster() =
         
     let showDropzone position =
         match position with
-        | ClusterPosition.Center ->
+        | ClusterPosition.Primary ->
             not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left
                  || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
         
         | ClusterPosition.Inner_Bottom
         | ClusterPosition.Inner_Left
         | ClusterPosition.Inner_Top
-        | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Center
+        | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary
         
         | ClusterPosition.Outer_Bottom -> hasCard ClusterPosition.Inner_Bottom
         | ClusterPosition.Outer_Left -> hasCard ClusterPosition.Inner_Left
@@ -115,13 +115,13 @@ type LoreCluster() =
             
             let acceptDrop (card: Card) _ = // droppedCard, target (target could be null)
                 match position with
-                | ClusterPosition.Center -> true
+                | ClusterPosition.Primary -> true
                 
                 | ClusterPosition.Inner_Bottom
                 | ClusterPosition.Inner_Left
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
-                    card.Type = cards[ClusterPosition.Center].Type
+                    card.Type = cards[ClusterPosition.Primary].Type
                     
                 | ClusterPosition.Outer_Bottom -> true // TODO: based on inner
                 | ClusterPosition.Outer_Left -> true // TODO: based on inner
@@ -142,19 +142,19 @@ type LoreCluster() =
                 
             let cardSide =
                 match position with
-                | ClusterPosition.Center -> CardSide.Front
+                | ClusterPosition.Primary -> CardSide.Primary
                 | ClusterPosition.Inner_Bottom
                 | ClusterPosition.Inner_Left
                 | ClusterPosition.Inner_Top
-                | ClusterPosition.Inner_Right -> CardSide.Back
+                | ClusterPosition.Inner_Right -> CardSide.Secondary
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
-                | ClusterPosition.Outer_Right -> CardSide.Front
+                | ClusterPosition.Outer_Right -> CardSide.Primary
                 
             let canBeRotated =
                 match position with
-                | ClusterPosition.Center ->
+                | ClusterPosition.Primary ->
                     not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left
                          || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
                     

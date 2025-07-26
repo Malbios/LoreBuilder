@@ -22,14 +22,14 @@
     margin: 40px;
 }
 
-.center-dropzone {
+.primary-dropzone {
     position: absolute;
     z-index: 10;
     width: 270px;
     height: 270px;
 }
 
-.center {
+.primary {
     position: absolute;
     z-index: 9;
     pointer-events: auto;
