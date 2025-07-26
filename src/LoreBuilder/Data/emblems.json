@@ -1,16 +1,40 @@
 [
   {
-    "PrimarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Primary": {
+      "Top": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Right": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Bottom": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Left": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Right": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Bottom": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      },
+      "Left": {
+        "Case": "Simple",
+        "Fields": ["Placeholder"]
+      }
     }
   }
 ]

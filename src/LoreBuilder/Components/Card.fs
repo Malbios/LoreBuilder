@@ -16,10 +16,11 @@ type Card() =
             ("left", cues.Left)
             ("right", cues.Right)
         ]
-        |> List.map (fun item ->
+        |> List.map (fun (side, cue) ->
             div {
-                attr.``class`` $"cue {fst item}"
-                snd item
+                attr.``class`` $"cue {side}"
+                
+                cue.Text
             }
         )
         |> Utils.renderList

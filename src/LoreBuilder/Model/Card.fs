@@ -75,20 +75,40 @@ module CardType =
         | CardType.Emblem -> "fa-shield-cat"
         | CardType.Modifier -> "fa-masks-theater"
         
-type Cues = {
-    Bottom: string
-    Left: string
-    Top: string
-    Right: string
+[<RequireQualifiedAccess>]
+type CardTypes =
+    | None
+    | And of CardType list
+    | Or of CardType list
+    
+type ComplexCue = {
+    Header: string option
+    Text: string
+    Cards: CardTypes
 }
 
+[<RequireQualifiedAccess>]
+type Cue =
+    | None
+    | Simple of string
+    | Complex of ComplexCue
+    | Icon of string
+        
+type Cues = {
+    Bottom: Cue
+    Left: Cue
+    Top: Cue
+    Right: Cue
+}
+
+[<RequireQualifiedAccess>]
 module Cues =
     
     let empty = {
-        Bottom = String.empty
-        Left = String.empty
-        Top = String.empty
-        Right = String.empty
+        Bottom = Cue.None
+        Left = Cue.None
+        Top = Cue.None
+        Right = Cue.None
     }
 
 type CardVisuals = {
@@ -100,6 +120,7 @@ type CardVisuals = {
     Type: string
 }
 
+[<RequireQualifiedAccess>]
 module CardVisuals =
     
     let fromCardType cardType = {
@@ -119,6 +140,7 @@ type Card = {
     SecondarySide: Cues
 }
 
+[<RequireQualifiedAccess>]
 module Card =
     
     let empty = {

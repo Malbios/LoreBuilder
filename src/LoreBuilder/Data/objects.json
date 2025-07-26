@@ -1,16 +1,32 @@
 [
   {
-    "PrimarySide": {
-      "Top": "Bow",
-      "Right": "Needle(s)",
-      "Bottom": "Circlet",
-      "Left": "Stove"
+    "Primary": {
+      "Top": {
+        "Text": "Bow"
+      },
+      "Right": {
+        "Text": "Needle(s)"
+      },
+      "Bottom": {
+        "Text": "Circlet"
+      },
+      "Left": {
+        "Text": "Stove"
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Text": "Placeholder"
+      },
+      "Right": {
+        "Text": "Placeholder"
+      },
+      "Bottom": {
+        "Text": "Placeholder"
+      },
+      "Left": {
+        "Text": "Placeholder"
+      }
     }
   }
 ]

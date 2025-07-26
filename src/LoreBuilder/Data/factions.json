@@ -1,16 +1,33 @@
 [
   {
-    "PrimarySide": {
-      "Top": "Union",
-      "Right": "Battalion",
-      "Bottom": "City",
-      "Left": "College"
+    "Primary": {
+      "Top": {
+        "Text": "Union"
+      },
+      "Right": {
+        "Text": "Battalion"
+      },
+      "Bottom": {
+        "Text": "City"
+      },
+      "Left": {
+        "Case": "Simple",
+        "Fields": ["College"]
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Text": "Placeholder"
+      },
+      "Right": {
+        "Text": "Placeholder"
+      },
+      "Bottom": {
+        "Text": "Placeholder"
+      },
+      "Left": {
+        "Text": "Placeholder"
+      }
     }
   }
 ]

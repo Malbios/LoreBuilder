@@ -1,16 +1,36 @@
 [
   {
-    "PrimarySide": {
-      "Top": "The Lion",
-      "Right": "The Reveler",
-      "Bottom": "The Smuggler",
-      "Left": "The Friend"
+    "Primary": {
+      "Top": {
+        "Header": "The",
+        "Text": "Lion"
+      },
+      "Right": {
+        "Header": "The",
+        "Text": "Reveler"
+      },
+      "Bottom": {
+        "Header": "The",
+        "Text": "Smuggler"
+      },
+      "Left": {
+        "Header": "The",
+        "Text": "Friend"
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Text": "Placeholder"
+      },
+      "Right": {
+        "Text": "Placeholder"
+      },
+      "Bottom": {
+        "Text": "Placeholder"
+      },
+      "Left": {
+        "Text": "Placeholder"
+      }
     }
   }
 ]

@@ -1,16 +1,32 @@
 [
   {
-    "PrimarySide": {
-      "Top": "Mosquito",
-      "Right": "Kangaroo",
-      "Bottom": "Dragon",
-      "Left": "Tiger"
+    "Primary": {
+      "Top": {
+        "Text": "Mosquito"
+      },
+      "Right": {
+        "Text": "Kangaroo"
+      },
+      "Bottom": {
+        "Text": "Dragon"
+      },
+      "Left": {
+        "Text": "Tiger"
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Text": "Placeholder"
+      },
+      "Right": {
+        "Text": "Placeholder"
+      },
+      "Bottom": {
+        "Text": "Placeholder"
+      },
+      "Left": {
+        "Text": "Placeholder"
+      }
     }
   }
 ]

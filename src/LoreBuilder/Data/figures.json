@@ -1,16 +1,32 @@
 [
   {
-    "PrimarySide": {
-      "Top": "Thinker",
-      "Right": "Reporter",
-      "Bottom": "Recruit",
-      "Left": "Beekeeper"
+    "Primary": {
+      "Top": {
+        "Text": "Thinker"
+      },
+      "Right": {
+        "Text": "Reporter"
+      },
+      "Bottom": {
+        "Text": "Recruit"
+      },
+      "Left": {
+        "Text": "Beekeeper"
+      }
     },
-    "SecondarySide": {
-      "Top": "Placeholder",
-      "Right": "Placeholder",
-      "Bottom": "Placeholder",
-      "Left": "Placeholder"
+    "Secondary": {
+      "Top": {
+        "Text": "Placeholder"
+      },
+      "Right": {
+        "Text": "Placeholder"
+      },
+      "Bottom": {
+        "Text": "Placeholder"
+      },
+      "Left": {
+        "Text": "Placeholder"
+      }
     }
   }
 ]

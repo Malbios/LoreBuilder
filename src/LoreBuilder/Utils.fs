@@ -8,6 +8,7 @@ open Bolero.Html
 open FunSharp.Common
 open LoreBuilder.Model
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 
 [<RequireQualifiedAccess>]
 module Utils =
@@ -33,16 +34,16 @@ module Utils =
     let randomCard cardType = {
         Type = cardType
         PrimarySide = {
-            Top = randomCueText ()
-            Right = randomCueText ()
-            Bottom = randomCueText ()
-            Left = randomCueText ()
+            Top = { Cue.empty with Text = randomCueText () }
+            Right = { Cue.empty with Text = randomCueText () }
+            Bottom = { Cue.empty with Text = randomCueText () }
+            Left = { Cue.empty with Text = randomCueText () }
         }
         SecondarySide = {
-            Top = randomCueText ()
-            Right = randomCueText ()
-            Bottom = randomCueText ()
-            Left = randomCueText ()
+            Top = { Cue.empty with Text = randomCueText () }
+            Right = { Cue.empty with Text = randomCueText () }
+            Bottom = { Cue.empty with Text = randomCueText () }
+            Left = { Cue.empty with Text = randomCueText () }
         }
     }
 
@@ -57,21 +58,16 @@ module Utils =
         use stream = asm.GetManifestResourceStream(file)
         use reader = new StreamReader(stream)
         reader.ReadToEnd()
-        
-    type PrimaryAndSecondaryCues = {
-        PrimarySide: Cues
-        SecondarySide: Cues
-    }
     
     let private cards file cardType =
         
-        readEmbeddedJson file 
-        |> JsonConvert.DeserializeObject<PrimaryAndSecondaryCues list>
-        |> List.map (fun item ->
+        readEmbeddedJson file
+        |> JsonConvert.DeserializeObject<JObject list>
+        |> List.map (fun obj ->
             {
                 Type = cardType
-                PrimarySide = item.PrimarySide
-                SecondarySide = item.SecondarySide
+                PrimarySide = obj.GetValue("Primary").ToObject<Cues>()
+                SecondarySide = obj.GetValue("Secondary").ToObject<Cues>()
             }
         )
         
