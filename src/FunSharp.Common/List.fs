@@ -12,3 +12,9 @@ module List =
             List.empty<'T>
         else
             list |> List.skip amount
+            
+    let join separator items =
+        
+        items
+        |> List.mapi (fun i x -> if i > 0 then [ separator; x ] else [x])
+        |> List.concat

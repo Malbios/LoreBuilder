@@ -1,32 +1,121 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Text": "Union"
-      },
-      "Right": {
-        "Text": "Battalion"
-      },
-      "Bottom": {
-        "Text": "City"
-      },
-      "Left": {
-        "Case": "Simple",
-        "Fields": ["College"]
-      }
+      "Bottom": "City",
+      "Left": "College",
+      "Top": "Union",
+      "Right": "Battalion"
     },
     "Secondary": {
-      "Top": {
-        "Text": "Placeholder"
-      },
-      "Right": {
-        "Text": "Placeholder"
-      },
       "Bottom": {
-        "Text": "Placeholder"
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "Background"
+              ]
+            },
+            "Text": "some figure",
+            "Requires": {
+              "Case": "Some",
+              "Fields": [
+                {
+                  "Case": "Or",
+                  "Fields": [
+                    [
+                      {
+                        "Case": "Figure"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
       },
       "Left": {
-        "Text": "Placeholder"
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "Trait"
+              ]
+            },
+            "Text": "some text-only trait"
+          }
+        ]
+      },
+      "Top": {
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "Trait"
+              ]
+            },
+            "Text": "some faction or creature",
+            "Requires": {
+              "Case": "Some",
+              "Fields": [
+                {
+                  "Case": "Or",
+                  "Fields": [
+                    [
+                      {
+                        "Case": "Faction"
+                      },
+                      {
+                        "Case": "Creature"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Right": {
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "Agenda"
+              ]
+            },
+            "Text": "an obj, event and loc",
+            "Requires": {
+              "Case": "Some",
+              "Fields": [
+                {
+                  "Case": "And",
+                  "Fields": [
+                    [
+                      {
+                        "Case": "Object"
+                      },
+                      {
+                        "Case": "Event"
+                      },
+                      {
+                        "Case": "Location"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
       }
     }
   }

@@ -1,40 +1,16 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Right": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Bottom": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Left": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      }
+      "Top": "axe.svg",
+      "Right": "axe.svg",
+      "Bottom": "axe.svg",
+      "Left": "axe.svg"
     },
     "Secondary": {
-      "Top": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Right": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Bottom": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      },
-      "Left": {
-        "Case": "Simple",
-        "Fields": ["Placeholder"]
-      }
+      "Top": "axe.svg",
+      "Right": "axe.svg",
+      "Bottom": "axe.svg",
+      "Left": "axe.svg"
     }
   }
 ]

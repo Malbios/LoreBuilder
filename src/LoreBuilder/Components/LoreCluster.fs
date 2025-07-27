@@ -10,68 +10,14 @@ open Microsoft.AspNetCore.Components
 open Microsoft.Extensions.Logging
 open Plk.Blazor.DragDrop
 
-[<RequireQualifiedAccess>]
-type ClusterPosition =
-    | Primary
-    | Inner_Bottom
-    | Outer_Bottom
-    | Inner_Left
-    | Outer_Left
-    | Inner_Top
-    | Outer_Top
-    | Inner_Right
-    | Outer_Right
-    
-module ClusterPosition =
-    
-    let fromIndex index =
-        
-        match index with
-        | 0 -> ClusterPosition.Primary
-        | 1 -> ClusterPosition.Inner_Bottom
-        | 2 -> ClusterPosition.Inner_Left
-        | 3 -> ClusterPosition.Inner_Top
-        | 4 -> ClusterPosition.Inner_Right
-        | 5 -> ClusterPosition.Outer_Bottom
-        | 6 -> ClusterPosition.Outer_Left
-        | 7 -> ClusterPosition.Outer_Top
-        | 8 -> ClusterPosition.Outer_Right
-        | _ -> failwith $"unexpected index: {index}"
-        
-    let toRotation position =
-        
-        match position with
-        | ClusterPosition.Primary
-        | ClusterPosition.Inner_Top
-        | ClusterPosition.Outer_Top ->
-            String.empty
-        | ClusterPosition.Inner_Right
-        | ClusterPosition.Outer_Right ->
-            "transform: rotate(90deg);"
-        | ClusterPosition.Inner_Bottom
-        | ClusterPosition.Outer_Bottom ->
-            "transform: rotate(180deg);"
-        | ClusterPosition.Inner_Left
-        | ClusterPosition.Outer_Left ->
-            "transform: rotate(270deg);"
-            
-    let toString position =
-        
-        (Union.toString position).ToLower()
-        
-    let emptyDict =
-        let dict = Dictionary<ClusterPosition, Card>()
-        
-        Union.toList<ClusterPosition>()
-        |> List.iter (fun position -> dict[position] <- Card.empty)
-        
-        dict
-
 type LoreCluster() =
     inherit Component()
         
-    let cards = ClusterPosition.emptyDict
-    
+    let cards =
+        Union.toList<ClusterPosition>()
+        |> List.map(fun position -> (position, Card.empty))
+        |> Dictionary.ofList
+        
     let hasCard position =
         cards[position] <> Card.empty
         
@@ -129,7 +75,6 @@ type LoreCluster() =
                 | ClusterPosition.Outer_Right -> true // TODO: based on inner
             
             let onDrop card =
-                this.Logger.LogInformation $"position: {position}"
                 let oldCard = cards[position]
                 cards[position] <- card
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
@@ -197,12 +142,23 @@ type LoreCluster() =
                         div { attr.style $"width: 270px; height: 270px;" }
                 }
             }
+            
+        let hasInnerCard () =
+            (hasCard ClusterPosition.Inner_Bottom) || (hasCard ClusterPosition.Inner_Left)
+            || (hasCard ClusterPosition.Inner_Top) || (hasCard ClusterPosition.Inner_Bottom)
+            
+        let margin () =
+            let innerMargin = if hasCard ClusterPosition.Primary then 60 else 0
+            let outerMargin = if hasInnerCard () then 0 else 0
+            
+            innerMargin + outerMargin
         
         div {
             attr.``class`` "cluster-exterior"
             
             div {
                 attr.``class`` "cluster-interior"
+                attr.style $"margin: {margin ()}px"
                 
                 Union.toList<ClusterPosition>()
                 |> List.map cardAndDropzone

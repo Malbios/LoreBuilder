@@ -3,13 +3,7 @@
     align-items: center;
     justify-content: center;
     
-    border: 2px dotted black;
-    box-sizing: border-box;
-    
-    width: 440px;
-    height: 440px;
-    max-height: 440px;
-    max-width: 440px;
+    margin: 5px;
     
     pointer-events: none;
 }
@@ -19,7 +13,6 @@
     
     width: 270px;
     height: 270px;
-    margin: 40px;
 }
 
 .primary-dropzone {
@@ -38,15 +31,60 @@
 .inner_bottom-dropzone {
     position: absolute;
     z-index: 10;
-    bottom: -40px;
+    bottom: -58px;
     width: 270px;
-    height: 40px;
+    height: 58px;
 }
 
 .inner_bottom {
     position: absolute;
     z-index: 8;
-    bottom: -40px;
+    bottom: -58px;
+    pointer-events: auto;
+}
+
+.inner_left-dropzone {
+    position: absolute;
+    z-index: 10;
+    left: -58px;
+    width: 58px;
+    height: 270px;
+}
+
+.inner_left {
+    position: absolute;
+    z-index: 6;
+    left: -58px;
+    pointer-events: auto;
+}
+
+.inner_top-dropzone {
+    position: absolute;
+    z-index: 10;
+    top: -58px;
+    width: 270px;
+    height: 58px;
+}
+
+.inner_top {
+    position: absolute;
+    z-index: 4;
+    top: -58px;
+    pointer-events: auto;
+}
+
+.inner_right-dropzone {
+    position: absolute;
+    z-index: 10;
+    right: -58px;
+    width: 58px;
+    height: 270px;
+}
+
+.inner_right {
+    position: absolute;
+    z-index: 2;
+    right: -58px;
     pointer-events: auto;
 }
 
@@ -65,21 +103,6 @@
     pointer-events: auto;
 }
 
-.inner_left-dropzone {
-    position: absolute;
-    z-index: 10;
-    left: -40px;
-    width: 40px;
-    height: 270px;
-}
-
-.inner_left {
-    position: absolute;
-    z-index: 6;
-    left: -40px;
-    pointer-events: auto;
-}
-
 .outer_left-dropzone {
     position: absolute;
     z-index: 10;
@@ -95,21 +118,6 @@
     pointer-events: auto;
 }
 
-.inner_top-dropzone {
-    position: absolute;
-    z-index: 10;
-    top: -40px;
-    width: 270px;
-    height: 40px;
-}
-
-.inner_top {
-    position: absolute;
-    z-index: 4;
-    top: -40px;
-    pointer-events: auto;
-}
-
 .outer_top-dropzone {
     position: absolute;
     z-index: 10;
@@ -122,21 +130,6 @@
     position: absolute;
     z-index: 3;
     top: -80px;
-    pointer-events: auto;
-}
-
-.inner_right-dropzone {
-    position: absolute;
-    z-index: 10;
-    right: -40px;
-    width: 40px;
-    height: 270px;
-}
-
-.inner_right {
-    position: absolute;
-    z-index: 2;
-    right: -40px;
     pointer-events: auto;
 }
 

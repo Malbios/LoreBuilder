@@ -1,32 +1,16 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Text": "Egg(s)"
-      },
-      "Right": {
-        "Text": "Fabric"
-      },
-      "Bottom": {
-        "Text": "Metal"
-      },
-      "Left": {
-        "Text": "Shard"
-      }
+      "Top": "Egg(s)",
+      "Right": "Fabric",
+      "Bottom": "Metal",
+      "Left": "Shard"
     },
     "Secondary": {
-      "Top": {
-        "Text": "Placeholder"
-      },
-      "Right": {
-        "Text": "Placeholder"
-      },
-      "Bottom": {
-        "Text": "Placeholder"
-      },
-      "Left": {
-        "Text": "Placeholder"
-      }
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
     }
   }
 ]

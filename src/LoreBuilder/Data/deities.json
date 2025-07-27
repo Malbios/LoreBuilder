@@ -1,36 +1,80 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Header": "The",
-        "Text": "Lion"
-      },
-      "Right": {
-        "Header": "The",
-        "Text": "Reveler"
-      },
       "Bottom": {
-        "Header": "The",
-        "Text": "Smuggler"
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "The"
+              ]
+            },
+            "Text": "Smuggler"
+          }
+        ]
       },
       "Left": {
-        "Header": "The",
-        "Text": "Friend"
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "The"
+              ]
+            },
+            "Text": "Friend",
+            "Requires": {
+              "Case": "None",
+              "Fields": []
+            }
+          }
+        ]
+      },
+      "Top": {
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "The"
+              ]
+            },
+            "Text": "Lion",
+            "Requires": {
+              "Case": "None",
+              "Fields": []
+            }
+          }
+        ]
+      },
+      "Right": {
+        "Case": "Complex",
+        "Fields": [
+          {
+            "Header": {
+              "Case": "Some",
+              "Fields": [
+                "The"
+              ]
+            },
+            "Text": "Reveler",
+            "Requires": {
+              "Case": "None",
+              "Fields": []
+            }
+          }
+        ]
       }
     },
     "Secondary": {
-      "Top": {
-        "Text": "Placeholder"
-      },
-      "Right": {
-        "Text": "Placeholder"
-      },
-      "Bottom": {
-        "Text": "Placeholder"
-      },
-      "Left": {
-        "Text": "Placeholder"
-      }
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
     }
   }
 ]

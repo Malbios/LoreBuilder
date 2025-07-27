@@ -1,11 +1,19 @@
 namespace LoreBuilder.Model
 
+open System
 open FunSharp.Common
 
 [<RequireQualifiedAccess>]
 type CardSide =
     | Primary
     | Secondary
+
+[<RequireQualifiedAccess>]
+type CardEdge =
+    | Bottom
+    | Left
+    | Top
+    | Right
 
 [<RequireQualifiedAccess>]
 type CardType =
@@ -74,41 +82,47 @@ module CardType =
         | CardType.Deity -> "fa-eye"
         | CardType.Emblem -> "fa-shield-cat"
         | CardType.Modifier -> "fa-masks-theater"
-        
-[<RequireQualifiedAccess>]
-type CardTypes =
-    | None
-    | And of CardType list
-    | Or of CardType list
     
 type ComplexCue = {
     Header: string option
     Text: string
-    Cards: CardTypes
+    Requires: Logical<CardType> option
 }
 
 [<RequireQualifiedAccess>]
 type Cue =
-    | None
-    | Simple of string
+    | Simple of text: string
     | Complex of ComplexCue
-    | Icon of string
+    | Icon of fileName: string
+    
+[<RequireQualifiedAccess>]
+module Cue =
+    
+    let private iconKind cardType =
         
+        match cardType with
+        | CardType.Emblem
+        | CardType.Modifier -> "black"
+        | _ -> "white"
+        
+    let iconUri cardType fileName =
+        Uri($"assets/symbols/{iconKind cardType}/{fileName}", UriKind.Relative)
+    
 type Cues = {
-    Bottom: Cue
-    Left: Cue
-    Top: Cue
-    Right: Cue
+    Bottom: Cue option
+    Left: Cue option
+    Top: Cue option
+    Right: Cue option
 }
 
 [<RequireQualifiedAccess>]
 module Cues =
     
     let empty = {
-        Bottom = Cue.None
-        Left = Cue.None
-        Top = Cue.None
-        Right = Cue.None
+        Bottom = None
+        Left = None
+        Top = None
+        Right = None
     }
 
 type CardVisuals = {

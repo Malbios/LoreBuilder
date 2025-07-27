@@ -43,11 +43,18 @@
     <EmbeddedResource Include="Data\emblems.json" />
     <Content Remove="Data\modifiers.json" />
     <EmbeddedResource Include="Data\modifiers.json" />
+    <Content Update="wwwroot\assets\symbols\white\axe.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\assets\symbols\black\axe.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Routes.fs" />
     <Compile Include="Model\Common.fs" />
     <Compile Include="Model\Card.fs" />
+    <Compile Include="Model\Cluster.fs" />
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Utils.fs" />

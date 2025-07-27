@@ -1,32 +1,16 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Text": "Funeral"
-      },
-      "Right": {
-        "Text": "Hurricane"
-      },
-      "Bottom": {
-        "Text": "Abdication"
-      },
-      "Left": {
-        "Text": "Wave"
-      }
+      "Top": "Funeral",
+      "Right": "Hurricane",
+      "Bottom": "Abdication",
+      "Left": "Wave"
     },
     "Secondary": {
-      "Top": {
-        "Text": "Placeholder"
-      },
-      "Right": {
-        "Text": "Placeholder"
-      },
-      "Bottom": {
-        "Text": "Placeholder"
-      },
-      "Left": {
-        "Text": "Placeholder"
-      }
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
     }
   }
 ]

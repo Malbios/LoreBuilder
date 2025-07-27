@@ -10,3 +10,11 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
 }
+
+.clusters {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-content: space-between;
+    align-items: center;
+}

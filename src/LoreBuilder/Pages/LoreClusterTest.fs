@@ -16,8 +16,6 @@ type private Model = {
 type LoreClusterTest() =
     inherit Component()
     
-    let cards = Utils.allCards
-    
     let mutable model = {
         IsDragging = false
     }
@@ -26,7 +24,18 @@ type LoreClusterTest() =
     
     [<Inject>]
     member val Logger : ILogger<LoreClusterTest> = Unchecked.defaultof<_> with get, set
-    
+        
+    member this.Cards =
+        
+        Utils.allCards
+        |> List.map (fun x ->
+            match x with
+            | Ok v -> v
+            | Error error ->
+                this.Logger.LogError $"{error}"
+                List.Empty
+        ) 
+        
     member this.TriggerReRender() =
         this.StateHasChanged()
     
@@ -39,7 +48,7 @@ type LoreClusterTest() =
             div {
                 attr.``class`` "card-stack"
                 
-                for cards in cards do
+                for cards in this.Cards do
                     comp<CardStack> {
                         "Size" => 110
                         "Cards" => cards
@@ -52,7 +61,21 @@ type LoreClusterTest() =
                     }
             }
             
-            comp<LoreCluster> {
-                "DropzonesAreActive" => model.IsDragging
+            div {
+                attr.``class`` "clusters"
+                
+                comp<LoreCluster> {
+                    "DropzonesAreActive" => model.IsDragging
+                }
+                
+                comp<LoreCluster> {
+                    "DropzonesAreActive" => model.IsDragging
+                }
+            }
+            
+            comp<RadzenStack> {
+                "Orientation" => Orientation.Vertical
+                
+                
             }
         }

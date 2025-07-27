@@ -34,16 +34,16 @@ module Utils =
     let randomCard cardType = {
         Type = cardType
         PrimarySide = {
-            Top = { Cue.empty with Text = randomCueText () }
-            Right = { Cue.empty with Text = randomCueText () }
-            Bottom = { Cue.empty with Text = randomCueText () }
-            Left = { Cue.empty with Text = randomCueText () }
+            Top = Cue.Simple (randomCueText ()) |> Some
+            Right = Cue.Simple (randomCueText ()) |> Some
+            Bottom = Cue.Simple (randomCueText ()) |> Some
+            Left = Cue.Simple (randomCueText ()) |> Some
         }
         SecondarySide = {
-            Top = { Cue.empty with Text = randomCueText () }
-            Right = { Cue.empty with Text = randomCueText () }
-            Bottom = { Cue.empty with Text = randomCueText () }
-            Left = { Cue.empty with Text = randomCueText () }
+            Top = Cue.Simple (randomCueText ()) |> Some
+            Right = Cue.Simple (randomCueText ()) |> Some
+            Bottom = Cue.Simple (randomCueText ()) |> Some
+            Left = Cue.Simple (randomCueText ()) |> Some
         }
     }
 
@@ -58,41 +58,71 @@ module Utils =
         use stream = asm.GetManifestResourceStream(file)
         use reader = new StreamReader(stream)
         reader.ReadToEnd()
-    
-    let private cards file cardType =
         
-        readEmbeddedJson file
-        |> JsonConvert.DeserializeObject<JObject list>
-        |> List.map (fun obj ->
-            {
-                Type = cardType
-                PrimarySide = obj.GetValue("Primary").ToObject<Cues>()
-                SecondarySide = obj.GetValue("Secondary").ToObject<Cues>()
-            }
-        )
+    let private cueFromJson side (obj: JObject) =
+        
+        let sideData = obj.GetValue(side)
+        
+        match sideData.Type with
+        | JTokenType.String ->
+            let s = sideData.ToObject<string>()
+            if s.EndsWith(".svg") then
+                Cue.Icon s
+            else
+                Cue.Simple s
+        | JTokenType.Object -> sideData.ToObject<Cue>()
+        | _ -> failwith $"unexpected JTokenType: {sideData.Type}"
+        
+    let private cuesFromJson direction (obj: JObject) =
+        
+        let cuesData = obj.GetValue(direction).ToObject<JObject>()
+        
+        {
+            Bottom = cuesData |> cueFromJson "Bottom" |> Some
+            Left = cuesData |> cueFromJson "Left" |> Some
+            Top = cuesData |> cueFromJson "Top" |> Some
+            Right = cuesData |> cueFromJson "Right" |> Some
+        }
+    
+    let private cardsFromFile cardType file =
+        
+        try
+            readEmbeddedJson file
+            |> JsonConvert.DeserializeObject<JObject list>
+            |> List.map (fun obj ->
+                {
+                    Type = cardType
+                    PrimarySide = obj |> cuesFromJson "Primary"
+                    SecondarySide = obj |> cuesFromJson "Secondary"
+                }
+            )
+            |> Ok
+        with ex ->
+            ex |> Error
         
     let factions =
-        cards "LoreBuilder.Data.factions.json" CardType.Faction
+        "LoreBuilder.Data.factions.json" |> cardsFromFile CardType.Faction
     let figures =
-        cards "LoreBuilder.Data.figures.json" CardType.Figure
+        "LoreBuilder.Data.figures.json" |> cardsFromFile CardType.Figure
     let events =
-        cards "LoreBuilder.Data.events.json" CardType.Event
+        "LoreBuilder.Data.events.json" |> cardsFromFile CardType.Event
     let locations =
-        cards "LoreBuilder.Data.locations.json" CardType.Location
+        "LoreBuilder.Data.locations.json" |> cardsFromFile CardType.Location
     let objects =
-        cards "LoreBuilder.Data.objects.json" CardType.Object
+        "LoreBuilder.Data.objects.json" |> cardsFromFile CardType.Object
     let creatures =
-        cards "LoreBuilder.Data.creatures.json" CardType.Creature
+        "LoreBuilder.Data.creatures.json" |> cardsFromFile CardType.Creature
     let materials =
-        cards "LoreBuilder.Data.materials.json" CardType.Material
+        "LoreBuilder.Data.materials.json" |> cardsFromFile CardType.Material
     let deities =
-        cards "LoreBuilder.Data.deities.json" CardType.Deity
+        "LoreBuilder.Data.deities.json" |> cardsFromFile CardType.Deity
     let emblems =
-        cards "LoreBuilder.Data.emblems.json" CardType.Emblem
+        "LoreBuilder.Data.emblems.json" |> cardsFromFile CardType.Emblem
     let modifiers =
-        cards "LoreBuilder.Data.modifiers.json" CardType.Modifier
+        "LoreBuilder.Data.modifiers.json" |> cardsFromFile CardType.Modifier
         
-    let allCards = [ factions; figures; events; locations; objects; creatures; materials; deities; emblems; modifiers ]
+    let allCards =
+        [ factions; figures; events; locations; objects; creatures; materials; deities; emblems; modifiers ]
 
     let renderList (nodes: Node list) =
         concat {

@@ -1,32 +1,16 @@
 [
   {
     "Primary": {
-      "Top": {
-        "Text": "Palace"
-      },
-      "Right": {
-        "Text": "Hangout"
-      },
-      "Bottom": {
-        "Text": "Wellspring"
-      },
-      "Left": {
-        "Text": "Sand Dune"
-      }
+      "Top": "Palace",
+      "Right": "Hangout",
+      "Bottom": "Wellspring",
+      "Left": "Sand Dune"
     },
     "Secondary": {
-      "Top": {
-        "Text": "Placeholder"
-      },
-      "Right": {
-        "Text": "Placeholder"
-      },
-      "Bottom": {
-        "Text": "Placeholder"
-      },
-      "Left": {
-        "Text": "Placeholder"
-      }
+      "Top": "Placeholder",
+      "Right": "Placeholder",
+      "Bottom": "Placeholder",
+      "Left": "Placeholder"
     }
   }
 ]

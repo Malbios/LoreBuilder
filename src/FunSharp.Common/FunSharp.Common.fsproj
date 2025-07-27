@@ -16,5 +16,6 @@
         <Compile Include="AsyncResult.fs" />
         <Compile Include="Utils.fs" />
         <Compile Include="List.fs" />
+        <Compile Include="Dictionary.fs" />
     </ItemGroup>
 </Project>

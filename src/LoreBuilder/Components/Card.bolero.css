@@ -26,10 +26,15 @@
 .primary-side,
 .secondary-side {
     position: absolute;
+    
     width: 100%;
     height: 100%;
+    
     backface-visibility: hidden;
     border-radius: 20px;
+
+    display: flex;
+    justify-content: center;
 }
 
 .primary-side {
@@ -45,34 +50,118 @@
     transform: rotateY(180deg);
 }
 
-.cue {
+.simple-cue,
+.icon-cue,
+.complex-cue {
     position: absolute;
-    width: 100%;
+
+    display: flex;
+    justify-content: center;
 }
 
-.top {
-    top: 10px;
+.simple-cue {
+    width: 270px;
+    height: 20px;
+}
+
+.simple-bottom-edge {
+    bottom: 0;
+    margin-bottom: 5px;
+}
+
+.simple-left-edge {
+    left: -125px;
+    top: 124px;
+    transform: rotate(90deg);
+    margin-left: 5px;
+}
+
+.simple-top-edge {
+    transform: rotate(180deg);
+    margin-top: 5px;
+}
+
+.simple-right-edge {
+    right: -125px;
+    top: 127px;
+    transform: rotate(-90deg);
+    margin-right: 5px;
+}
+
+.icon-cue {
+    width: 35px;
+    height: 35px;
+}
+
+.icon-bottom-edge {
+    bottom: 0;
+    margin-bottom: 5px;
+}
+
+.icon-left-edge {
     left: 0;
+    top: 124px;
+    transform: rotate(90deg);
+    margin-left: 5px;
+}
+
+.icon-top-edge {
+    transform: rotate(180deg);
+    margin-top: 5px;
+}
+
+.icon-right-edge {
+    right: 0;
+    top: 127px;
+    transform: rotate(-90deg);
+    margin-right: 5px;
+}
+
+.complex-cue {
+    width: 270px;
+    height: 50px;
+}
+
+.complex-bottom-edge {
+    bottom: 0;
+}
+
+.complex-left-edge {
+    left: -107px;
+    top: 109px;
+    transform: rotate(90deg);
+}
+
+.complex-top-edge {
+    top: 3px;
     transform: rotate(180deg);
 }
 
-.bottom {
-    bottom: 10px;
-    left: 0;
-}
-
-.left {
-    left: 22px;
-    top: -11px;
-    transform: rotate(90deg);
-    transform-origin: left;
-}
-
-.right {
-    right: 22px;
-    top: -11px;
+.complex-right-edge {
+    right: -107px;
+    top: 109px;
     transform: rotate(-90deg);
-    transform-origin: right;
+}
+
+.cue-header {
+    font-size: small;
+    opacity: 0.5;
+}
+
+.cue-text-and-requires {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cue-text {
+    font-size: 0.9rem;
+}
+
+.cue-requires {
+    display: flex;
+    gap: 0.3rem;
+    flex-direction: row;
 }
 
 .arrow {

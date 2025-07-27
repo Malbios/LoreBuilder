@@ -10,3 +10,8 @@ module Version =
 type ThemeMode =
     | Light
     | Dark
+    
+[<RequireQualifiedAccess>]
+type Logical<'T> =
+    | And of 'T list
+    | Or of 'T list

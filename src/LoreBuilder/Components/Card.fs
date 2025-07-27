@@ -2,28 +2,13 @@ namespace LoreBuilder.Components
 
 open Bolero
 open Bolero.Html
+open FunSharp.Common
 open LoreBuilder
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 
 type Card() =
     inherit Component()
-        
-    let cardCues cues =
-        [
-            ("top", cues.Top)
-            ("bottom", cues.Bottom)
-            ("left", cues.Left)
-            ("right", cues.Right)
-        ]
-        |> List.map (fun (side, cue) ->
-            div {
-                attr.``class`` $"cue {side}"
-                
-                cue.Text
-            }
-        )
-        |> Utils.renderList
     
     override _.CssScope = CssScopes.Card
     
@@ -47,6 +32,9 @@ type Card() =
     
     [<Parameter>]
     member val CanBeRotated = true with get, set
+    
+    [<Parameter>]
+    member val OnlyShowActiveEdge = true with get, set
     
     [<Parameter>]
     member val Size = 0 with get, set
@@ -78,6 +66,97 @@ type Card() =
             match this.CurrentSide with
             | CardSide.Primary -> cardVisuals.PrimaryTextColor
             | CardSide.Secondary -> cardVisuals.SecondaryTextColor
+            
+        let cueRequires (separator: string) (t: CardType list) =
+            
+            let icons =
+                t
+                |> List.map (fun t ->
+                    let iconColor = CardType.iconColor t
+                    let icon = CardType.icon t
+                    
+                    div {
+                        attr.style $"color: {iconColor};"
+                        
+                        i { attr.``class`` $"fa-solid {icon}" }
+                    }
+                )
+            
+            div {
+                attr.``class`` "cue-requires"
+                
+                icons
+                |> List.join (text separator)
+                |> Utils.renderList
+            }
+            
+        let complexCue cue =
+            div {
+                attr.``class`` "cue-header-and-text-and-requires"
+                
+                if cue.Header.IsSome then
+                    div {
+                        attr.``class`` "cue-header"
+                        text cue.Header.Value
+                    }
+                
+                div {
+                    attr.``class`` "cue-text-and-requires"
+                    
+                    div {
+                        attr.``class`` "cue-text"
+                        cue.Text
+                    }
+                    
+                    if cue.Requires.IsSome then
+                        match cue.Requires.Value with
+                        | Logical.And v -> cueRequires "+" v
+                        | Logical.Or v -> cueRequires "/" v
+                }
+            }
+            
+        let cardCue cue =
+            match cue with
+            | None -> Node.Empty ()
+            | Some cue ->
+                match cue with
+                | Cue.Simple s -> text s
+                | Cue.Icon fileName -> img { attr.src (Cue.iconUri this.Data.Type fileName) }
+                | Cue.Complex cue -> complexCue cue
+                
+        let activeEdge =
+            match this.Rotation with
+            | 0 -> CardEdge.Bottom
+            | 270 ->CardEdge.Left
+            | 180 -> CardEdge.Top
+            | 90 -> CardEdge.Right
+            | _ -> failwith $"unexpected rotation: {this.Rotation}"
+                
+        let cardCues cues =
+            [
+                (CardEdge.Bottom, cues.Bottom)
+                (CardEdge.Left, cues.Left)
+                (CardEdge.Top, cues.Top)
+                (CardEdge.Right, cues.Right)
+            ]
+            |> List.map (fun (edge, cue) ->
+                let cueKind =
+                    cue |> Option.defaultValue (Cue.Simple String.empty) |> (fun x -> (Union.toString x).ToLower())
+                    
+                let visibility =
+                    if not this.OnlyShowActiveEdge || activeEdge = edge then "visible" else "hidden"
+                    
+                let edgeName =
+                    (Union.toString edge).ToLower() 
+                
+                div {
+                    attr.``class`` $"cue {cueKind}-cue {cueKind}-{edgeName}-edge"
+                    attr.style $"visibility: {visibility};"
+                    
+                    cardCue cue
+                }
+            )
+            |> Utils.renderList
                 
         let arrow className rotate icon =
             let arrowVisibility =
