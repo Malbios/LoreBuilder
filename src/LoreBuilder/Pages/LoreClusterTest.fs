@@ -62,20 +62,11 @@ type LoreClusterTest() =
             }
             
             div {
-                attr.``class`` "clusters"
+                attr.``class`` "test-clusters"
                 
-                comp<LoreCluster> {
-                    "DropzonesAreActive" => model.IsDragging
-                }
-                
-                comp<LoreCluster> {
-                    "DropzonesAreActive" => model.IsDragging
-                }
-            }
-            
-            comp<RadzenStack> {
-                "Orientation" => Orientation.Vertical
-                
-                
+                for _ in [1..4] do
+                    comp<LoreCluster> {
+                        "DropzonesAreActive" => model.IsDragging
+                    }
             }
         }

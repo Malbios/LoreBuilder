@@ -10,6 +10,8 @@ open Microsoft.AspNetCore.Components
 type Card() =
     inherit Component()
     
+    let mutable rotation = 0
+    
     override _.CssScope = CssScopes.Card
     
     [<Parameter>]
@@ -17,9 +19,6 @@ type Card() =
     
     [<Parameter>]
     member val CurrentSide = CardSide.Primary with get, set
-    
-    [<Parameter>]
-    member val Rotation = 0 with get, set
     
     [<Parameter>]
     member val IsHovered = false with get, set
@@ -34,7 +33,7 @@ type Card() =
     member val CanBeRotated = true with get, set
     
     [<Parameter>]
-    member val OnlyShowActiveEdge = true with get, set
+    member val ActiveEdge = None with get, set
     
     [<Parameter>]
     member val Size = 0 with get, set
@@ -54,10 +53,10 @@ type Card() =
                     | CardSide.Secondary -> CardSide.Primary
                 
         let rotateClockwise _ =
-            this.Rotation <- this.Rotation + 90
+            rotation <- rotation + 90
             
         let rotateCounterClockwise _ =
-            this.Rotation <- this.Rotation - 90
+            rotation <- rotation - 90
             
         let cardVisuals =
             CardVisuals.fromCardType this.Data.Type
@@ -124,13 +123,32 @@ type Card() =
                 | Cue.Icon fileName -> img { attr.src (Cue.iconUri this.Data.Type fileName) }
                 | Cue.Complex cue -> complexCue cue
                 
-        let activeEdge =
-            match this.Rotation with
+        let edgeFromRotation () =
+            match rotation % 360 with
             | 0 -> CardEdge.Bottom
-            | 270 ->CardEdge.Left
-            | 180 -> CardEdge.Top
-            | 90 -> CardEdge.Right
-            | _ -> failwith $"unexpected rotation: {this.Rotation}"
+            
+            | 270
+            | -90 -> CardEdge.Left
+            
+            | 180
+            | -180 -> CardEdge.Top
+            
+            | 90
+            | -270 -> CardEdge.Right
+            
+            | _ -> failwith $"unexpected rotation: {rotation}"
+                
+        let isVisible edge =
+            if this.ActiveEdge.IsNone then true
+            else
+                let rotatedEdge = edgeFromRotation ()
+                
+                match this.ActiveEdge.Value with
+                | CardEdge.Bottom ->
+                    edge = rotatedEdge
+                | CardEdge.Top ->
+                    edge = (CardEdge.opposite rotatedEdge)
+                | _ -> failwith $"unexpected active edge value: {this.ActiveEdge.Value}"
                 
         let cardCues cues =
             [
@@ -144,7 +162,7 @@ type Card() =
                     cue |> Option.defaultValue (Cue.Simple String.empty) |> (fun x -> (Union.toString x).ToLower())
                     
                 let visibility =
-                    if not this.OnlyShowActiveEdge || activeEdge = edge then "visible" else "hidden"
+                    if isVisible edge then "visible" else "hidden"
                     
                 let edgeName =
                     (Union.toString edge).ToLower() 
@@ -183,7 +201,7 @@ type Card() =
             
             div {
                 attr.``class`` "flippable-card-container"
-                attr.style $"transform: rotate({this.Rotation}deg);"
+                attr.style $"transform: rotate({rotation}deg);"
                 
                 on.click flip
                 

@@ -14,6 +14,17 @@ type CardEdge =
     | Left
     | Top
     | Right
+    
+[<RequireQualifiedAccess>]
+module CardEdge =
+    
+    let opposite edge =
+        
+        match edge with
+        | CardEdge.Bottom -> CardEdge.Top
+        | CardEdge.Left -> CardEdge.Right
+        | CardEdge.Top -> CardEdge.Bottom
+        | CardEdge.Right -> CardEdge.Left
 
 [<RequireQualifiedAccess>]
 type CardType =

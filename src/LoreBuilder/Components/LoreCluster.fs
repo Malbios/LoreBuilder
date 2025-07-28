@@ -17,25 +17,6 @@ type LoreCluster() =
         Union.toList<ClusterPosition>()
         |> List.map(fun position -> (position, Card.empty))
         |> Dictionary.ofList
-        
-    let hasCard position =
-        cards[position] <> Card.empty
-        
-    let showDropzone position =
-        match position with
-        | ClusterPosition.Primary ->
-            not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left
-                 || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
-        
-        | ClusterPosition.Inner_Bottom
-        | ClusterPosition.Inner_Left
-        | ClusterPosition.Inner_Top
-        | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary
-        
-        | ClusterPosition.Outer_Bottom -> hasCard ClusterPosition.Inner_Bottom
-        | ClusterPosition.Outer_Left -> hasCard ClusterPosition.Inner_Left
-        | ClusterPosition.Outer_Top -> hasCard ClusterPosition.Inner_Top
-        | ClusterPosition.Outer_Right -> hasCard ClusterPosition.Inner_Right
     
     override _.CssScope = CssScopes.LoreCluster
     
@@ -52,6 +33,26 @@ type LoreCluster() =
     member val OnCardReplace: Card -> unit = ignore with get, set
 
     override this.Render() =
+        
+        let hasCard position =
+            cards[position] <> Card.empty
+            
+        let noInnerCards =
+            not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
+        
+        let showDropzone position =
+            match position with
+            | ClusterPosition.Primary -> noInnerCards
+            
+            | ClusterPosition.Inner_Bottom
+            | ClusterPosition.Inner_Left
+            | ClusterPosition.Inner_Top
+            | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary
+            
+            | ClusterPosition.Outer_Bottom -> hasCard ClusterPosition.Inner_Bottom
+            | ClusterPosition.Outer_Left -> hasCard ClusterPosition.Inner_Left
+            | ClusterPosition.Outer_Top -> hasCard ClusterPosition.Inner_Top
+            | ClusterPosition.Outer_Right -> hasCard ClusterPosition.Inner_Right
             
         let cardAndDropzone position =
             let card = cards[position]
@@ -97,11 +98,22 @@ type LoreCluster() =
                 | ClusterPosition.Outer_Top
                 | ClusterPosition.Outer_Right -> CardSide.Primary
                 
+            let activeEdge =
+                match position with
+                | ClusterPosition.Primary -> if noInnerCards then None else Some CardEdge.Bottom
+                
+                | ClusterPosition.Inner_Bottom
+                | ClusterPosition.Inner_Left
+                | ClusterPosition.Inner_Top
+                | ClusterPosition.Inner_Right
+                | ClusterPosition.Outer_Bottom
+                | ClusterPosition.Outer_Left
+                | ClusterPosition.Outer_Top
+                | ClusterPosition.Outer_Right -> Some CardEdge.Top
+                
             let canBeRotated =
                 match position with
-                | ClusterPosition.Primary ->
-                    not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left
-                         || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
+                | ClusterPosition.Primary -> noInnerCards
                     
                 | ClusterPosition.Inner_Bottom -> not (hasCard ClusterPosition.Outer_Bottom)
                 | ClusterPosition.Inner_Left -> not (hasCard ClusterPosition.Outer_Left)
@@ -112,19 +124,27 @@ type LoreCluster() =
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
                 | ClusterPosition.Outer_Right -> true
+                
+            let canBeFlipped =
+                match position with
+                | ClusterPosition.Primary -> noInnerCards
+                | _ -> false
             
             concat {
-                if showDropzone position then
-                    div {
-                        attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
-                        
-                        comp<Dropzone<Card>> {
-                            "MaxItems" => 1
-                            "Items" => List<Card>()
-                            "Accepts" => Func<Card, Card, bool>(acceptDrop)
-                            "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
-                        }
+                let dropzoneVisibility =
+                    if showDropzone position then "" else "display: none;"
+                    
+                div {
+                    attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
+                    attr.style $"{dropzoneVisibility}"
+                    
+                    comp<Dropzone<Card>> {
+                        "MaxItems" => 1
+                        "Items" => List<Card>()
+                        "Accepts" => Func<Card, Card, bool>(acceptDrop)
+                        "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
                     }
+                }
                         
                 div {
                     attr.``class`` cardClassName
@@ -135,21 +155,18 @@ type LoreCluster() =
                             "Data" => card
                             "Size" => 270
                             "CurrentSide" => cardSide
-                            "CanBeFlipped" => false
+                            "CanBeFlipped" => canBeFlipped
                             "CanBeRotated" => canBeRotated
+                            "ActiveEdge" => activeEdge
                         }
                     else
                         div { attr.style $"width: 270px; height: 270px;" }
                 }
             }
             
-        let hasInnerCard () =
-            (hasCard ClusterPosition.Inner_Bottom) || (hasCard ClusterPosition.Inner_Left)
-            || (hasCard ClusterPosition.Inner_Top) || (hasCard ClusterPosition.Inner_Bottom)
-            
-        let margin () =
+        let margin =
             let innerMargin = if hasCard ClusterPosition.Primary then 60 else 0
-            let outerMargin = if hasInnerCard () then 0 else 0
+            let outerMargin = if noInnerCards then 0 else 40
             
             innerMargin + outerMargin
         
@@ -158,7 +175,7 @@ type LoreCluster() =
             
             div {
                 attr.``class`` "cluster-interior"
-                attr.style $"margin: {margin ()}px"
+                attr.style $"margin: {margin}px"
                 
                 Union.toList<ClusterPosition>()
                 |> List.map cardAndDropzone

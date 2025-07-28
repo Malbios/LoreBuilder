@@ -91,60 +91,60 @@
 .outer_bottom-dropzone {
     position: absolute;
     z-index: 10;
-    bottom: -80px;
+    bottom: -90px;
     width: 270px;
-    height: 40px;
+    height: 32px;
 }
 
 .outer_bottom {
     position: absolute;
     z-index: 7;
-    bottom: -80px;
+    bottom: -90px;
     pointer-events: auto;
 }
 
 .outer_left-dropzone {
     position: absolute;
     z-index: 10;
-    left: -80px;
-    width: 40px;
+    left: -90px;
+    width: 32px;
     height: 270px;
 }
 
 .outer_left {
     position: absolute;
     z-index: 5;
-    left: -80px;
+    left: -90px;
     pointer-events: auto;
 }
 
 .outer_top-dropzone {
     position: absolute;
     z-index: 10;
-    top: -80px;
+    top: -90px;
     width: 270px;
-    height: 40px;
+    height: 32px;
 }
 
 .outer_top {
     position: absolute;
     z-index: 3;
-    top: -80px;
+    top: -90px;
     pointer-events: auto;
 }
 
 .outer_right-dropzone {
     position: absolute;
     z-index: 10;
-    right: -80px;
-    width: 40px;
+    right: -90px;
+    width: 32px;
     height: 270px;
 }
 
 .outer_right {
     position: absolute;
     z-index: 1;
-    right: -80px;
+    right: -90px;
     pointer-events: auto;
 }
 
