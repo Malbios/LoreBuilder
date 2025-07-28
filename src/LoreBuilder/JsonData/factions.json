@@ -17,14 +17,17 @@
                 "Background"
               ]
             },
-            "Text": "some figure",
+            "Text": "co-founded by friends or rivals",
             "Requires": {
               "Case": "Some",
               "Fields": [
                 {
-                  "Case": "Or",
+                  "Case": "And",
                   "Fields": [
                     [
+                      {
+                        "Case": "Figure"
+                      },
                       {
                         "Case": "Figure"
                       }
@@ -46,7 +49,7 @@
                 "Trait"
               ]
             },
-            "Text": "some text-only trait"
+            "Text": "highly corrupted or corruptible"
           }
         ]
       },
@@ -60,7 +63,7 @@
                 "Trait"
               ]
             },
-            "Text": "some faction or creature",
+            "Text": "frequently work out of a certain kind of location",
             "Requires": {
               "Case": "Some",
               "Fields": [
@@ -69,10 +72,10 @@
                   "Fields": [
                     [
                       {
-                        "Case": "Faction"
+                        "Case": "Location"
                       },
                       {
-                        "Case": "Creature"
+                        "Case": "Location"
                       }
                     ]
                   ]
@@ -92,22 +95,16 @@
                 "Agenda"
               ]
             },
-            "Text": "an obj, event and loc",
+            "Text": "undo an event",
             "Requires": {
               "Case": "Some",
               "Fields": [
                 {
-                  "Case": "And",
+                  "Case": "Or",
                   "Fields": [
                     [
                       {
-                        "Case": "Object"
-                      },
-                      {
                         "Case": "Event"
-                      },
-                      {
-                        "Case": "Location"
                       }
                     ]
                   ]

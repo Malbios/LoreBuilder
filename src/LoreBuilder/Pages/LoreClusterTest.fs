@@ -27,14 +27,16 @@ type LoreClusterTest() =
         
     member this.Cards =
         
+        // Utils.allCards
+        // |> List.map (fun x ->
+        //     match x with
+        //     | Ok v -> v
+        //     | Error error ->
+        //         this.Logger.LogError $"{error}"
+        //         List.Empty
+        // )
+        
         Utils.allCards
-        |> List.map (fun x ->
-            match x with
-            | Ok v -> v
-            | Error error ->
-                this.Logger.LogError $"{error}"
-                List.Empty
-        ) 
         
     member this.TriggerReRender() =
         this.StateHasChanged()

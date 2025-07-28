@@ -13,5 +13,6 @@ type ThemeMode =
     
 [<RequireQualifiedAccess>]
 type Logical<'T> =
-    | And of 'T list
-    | Or of 'T list
+    | One of 'T
+    | Any of 'T list
+    | All of 'T list

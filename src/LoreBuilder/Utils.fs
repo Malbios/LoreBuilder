@@ -100,29 +100,29 @@ module Utils =
         with ex ->
             ex |> Error
         
-    let factions =
-        "LoreBuilder.Data.factions.json" |> cardsFromFile CardType.Faction
-    let figures =
-        "LoreBuilder.Data.figures.json" |> cardsFromFile CardType.Figure
-    let events =
-        "LoreBuilder.Data.events.json" |> cardsFromFile CardType.Event
-    let locations =
-        "LoreBuilder.Data.locations.json" |> cardsFromFile CardType.Location
-    let objects =
-        "LoreBuilder.Data.objects.json" |> cardsFromFile CardType.Object
-    let creatures =
-        "LoreBuilder.Data.creatures.json" |> cardsFromFile CardType.Creature
-    let materials =
-        "LoreBuilder.Data.materials.json" |> cardsFromFile CardType.Material
-    let deities =
-        "LoreBuilder.Data.deities.json" |> cardsFromFile CardType.Deity
-    let emblems =
-        "LoreBuilder.Data.emblems.json" |> cardsFromFile CardType.Emblem
-    let modifiers =
-        "LoreBuilder.Data.modifiers.json" |> cardsFromFile CardType.Modifier
+    // let factions =
+    //     "LoreBuilder.Data.factions.json" |> cardsFromFile CardType.Faction
+    // let figures =
+    //     "LoreBuilder.Data.figures.json" |> cardsFromFile CardType.Figure
+    // let events =
+    //     "LoreBuilder.Data.events.json" |> cardsFromFile CardType.Event
+    // let locations =
+    //     "LoreBuilder.Data.locations.json" |> cardsFromFile CardType.Location
+    // let objects =
+    //     "LoreBuilder.Data.objects.json" |> cardsFromFile CardType.Object
+    // let creatures =
+    //     "LoreBuilder.Data.creatures.json" |> cardsFromFile CardType.Creature
+    // let materials =
+    //     "LoreBuilder.Data.materials.json" |> cardsFromFile CardType.Material
+    // let deities =
+    //     "LoreBuilder.Data.deities.json" |> cardsFromFile CardType.Deity
+    // let emblems =
+    //     "LoreBuilder.Data.emblems.json" |> cardsFromFile CardType.Emblem
+    // let modifiers =
+    //     "LoreBuilder.Data.modifiers.json" |> cardsFromFile CardType.Modifier
         
     let allCards =
-        [ factions; figures; events; locations; objects; creatures; materials; deities; emblems; modifiers ]
+        [ Factions.cards ]
 
     let renderList (nodes: Node list) =
         concat {

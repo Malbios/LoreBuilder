@@ -109,8 +109,9 @@ type Card() =
                     
                     if cue.Requires.IsSome then
                         match cue.Requires.Value with
-                        | Logical.And v -> cueRequires "+" v
-                        | Logical.Or v -> cueRequires "/" v
+                        | Logical.One v -> cueRequires String.empty [v]
+                        | Logical.Any v -> cueRequires "/" v
+                        | Logical.All v -> cueRequires "+" v
                 }
             }
             
