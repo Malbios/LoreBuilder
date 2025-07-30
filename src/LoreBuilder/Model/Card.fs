@@ -97,7 +97,7 @@ module CardType =
 type ComplexCue = {
     Header: string option
     Text: string
-    Requires: Logical<CardType> option
+    Expansions: Logical<CardType> option
 }
 
 [<RequireQualifiedAccess>]

@@ -13,7 +13,7 @@ module HoverTest =
     module State =
         
         let initial = {
-            HoverText = String.empty
+            HoverText = ""
         }
         
     type Message =

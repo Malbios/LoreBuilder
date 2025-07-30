@@ -5,7 +5,7 @@ open LoreBuilder.Builders.Cards
 [<RequireQualifiedAccess>]
 module Factions =
     
-    let private card = CardBuilder(CardType.Faction)
+    let private card = CardBuilder(faction)
     
     let cards = [
         card {
@@ -13,18 +13,18 @@ module Factions =
             secondary ( cues {
                 bottom ( background {
                     text "co-founded by friends or rivals"
-                    requires ( [CardType.Figure; CardType.Figure] |> all )
+                    expansions_all [figure; figure]
                 } )
                 left ( traitCue {
                     text "highly corrupted or corruptible"
                 } )
                 top ( traitCue {
                     text "frequently work out of a certain kind of location"
-                    requires ( [CardType.Location; CardType.Location] |> any )
+                    expansions_any [location; location]
                 } )
                 right ( agenda {
                     text "undo an event"
-                    requires CardType.Event
+                    expansion event
                 } )
             } )
         }

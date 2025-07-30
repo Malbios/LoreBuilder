@@ -63,4 +63,4 @@ module HoverTest =
             { model with HoverText = text }, Cmd.none
             
         | HoverTest.Message.ClearHoverText ->
-            { model with HoverText = String.empty }, Cmd.none
+            { model with HoverText = "" }, Cmd.none

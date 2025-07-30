@@ -66,7 +66,7 @@ type Card() =
             | CardSide.Primary -> cardVisuals.PrimaryTextColor
             | CardSide.Secondary -> cardVisuals.SecondaryTextColor
             
-        let cueRequires (separator: string) (t: CardType list) =
+        let cueExpansions (separator: string) (t: CardType list) =
             
             let icons =
                 t
@@ -107,11 +107,11 @@ type Card() =
                         cue.Text
                     }
                     
-                    if cue.Requires.IsSome then
-                        match cue.Requires.Value with
-                        | Logical.One v -> cueRequires String.empty [v]
-                        | Logical.Any v -> cueRequires "/" v
-                        | Logical.All v -> cueRequires "+" v
+                    if cue.Expansions.IsSome then
+                        match cue.Expansions.Value with
+                        | Logical.One v -> cueExpansions "" [v]
+                        | Logical.Any v -> cueExpansions "/" v
+                        | Logical.All v -> cueExpansions "+" v
                 }
             }
             
@@ -160,7 +160,7 @@ type Card() =
             ]
             |> List.map (fun (edge, cue) ->
                 let cueKind =
-                    cue |> Option.defaultValue (Cue.Simple String.empty) |> (fun x -> (Union.toString x).ToLower())
+                    cue |> Option.defaultValue (Cue.Simple "") |> (fun x -> (Union.toString x).ToLower())
                     
                 let visibility =
                     if isVisible edge then "visible" else "hidden"

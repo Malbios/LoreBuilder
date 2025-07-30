@@ -25,6 +25,6 @@ module HttpError =
         
         let details = match httpError.Details with
                       | PlainBody str -> formatDetails str
-                      | NoDetails -> String.empty
+                      | NoDetails -> ""
                       
         $"{httpError.Method.ToString().ToUpper()} {httpError.Url} failed with {httpError.StatusCode |> int}({httpError.StatusCode})! {details}"

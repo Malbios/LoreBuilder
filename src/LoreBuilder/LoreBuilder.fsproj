@@ -24,25 +24,15 @@
   </ItemGroup>
   <ItemGroup>
     <Content Remove="Data\factions.json" />
-    <EmbeddedResource Include="JsonData\factions.json" />
     <Content Remove="Data\figures.json" />
-    <EmbeddedResource Include="JsonData\figures.json" />
     <Content Remove="Data\events.json" />
-    <EmbeddedResource Include="JsonData\events.json" />
     <Content Remove="Data\locations.json" />
-    <EmbeddedResource Include="JsonData\locations.json" />
     <Content Remove="Data\objects.json" />
-    <EmbeddedResource Include="JsonData\objects.json" />
     <Content Remove="Data\creatures.json" />
-    <EmbeddedResource Include="JsonData\creatures.json" />
     <Content Remove="Data\materials.json" />
-    <EmbeddedResource Include="JsonData\materials.json" />
     <Content Remove="Data\deities.json" />
-    <EmbeddedResource Include="JsonData\deities.json" />
     <Content Remove="Data\emblems.json" />
-    <EmbeddedResource Include="JsonData\emblems.json" />
     <Content Remove="Data\modifiers.json" />
-    <EmbeddedResource Include="JsonData\modifiers.json" />
     <Content Update="wwwroot\assets\symbols\white\axe.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -59,6 +49,15 @@
     <Compile Include="Model\Application.fs" />
     <Compile Include="Builders.fs" />
     <Compile Include="Data\Factions.fs" />
+    <Compile Include="Data\Figures.fs" />
+    <Compile Include="Data\Events.fs" />
+    <Compile Include="Data\Locations.fs" />
+    <Compile Include="Data\Objects.fs" />
+    <Compile Include="Data\Creatures.fs" />
+    <Compile Include="Data\Materials.fs" />
+    <Compile Include="Data\Deities.fs" />
+    <Compile Include="Data\Emblems.fs" />
+    <Compile Include="Data\Modifiers.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Components\CardBadge.fs" />
     <None Include="Components\CardBadge.bolero.css" />
@@ -81,5 +80,17 @@
     <Compile Include="Main.fs" />
     <None Include="LoreBuilder.bolero.css" />
     <Compile Include="Startup.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="JsonData\creatures.json" />
+    <_ContentIncludedByDefault Remove="JsonData\deities.json" />
+    <_ContentIncludedByDefault Remove="JsonData\emblems.json" />
+    <_ContentIncludedByDefault Remove="JsonData\events.json" />
+    <_ContentIncludedByDefault Remove="JsonData\factions.json" />
+    <_ContentIncludedByDefault Remove="JsonData\figures.json" />
+    <_ContentIncludedByDefault Remove="JsonData\locations.json" />
+    <_ContentIncludedByDefault Remove="JsonData\materials.json" />
+    <_ContentIncludedByDefault Remove="JsonData\modifiers.json" />
+    <_ContentIncludedByDefault Remove="JsonData\objects.json" />
   </ItemGroup>
 </Project>

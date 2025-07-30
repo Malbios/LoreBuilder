@@ -37,7 +37,7 @@ module ClusterPosition =
         | ClusterPosition.Primary
         | ClusterPosition.Inner_Top
         | ClusterPosition.Outer_Top ->
-            String.empty
+            ""
         | ClusterPosition.Inner_Right
         | ClusterPosition.Outer_Right ->
             "transform: rotate(90deg);"

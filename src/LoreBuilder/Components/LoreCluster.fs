@@ -27,7 +27,7 @@ type LoreCluster() =
     member val DropzonesAreActive = false with get, set
     
     [<Parameter>]
-    member val Lore = String.empty with get, set
+    member val Lore = "" with get, set
     
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
@@ -81,7 +81,7 @@ type LoreCluster() =
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
             
             let blinkerClass =
-                if this.DropzonesAreActive then " blink_me" else String.empty
+                if this.DropzonesAreActive then " blink_me" else ""
             
             let pointerEventsClass =
                 if this.DropzonesAreActive then " auto-pointer" else " no-pointer"

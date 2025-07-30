@@ -9,7 +9,6 @@
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="String.fs" />
         <Compile Include="Union.fs" />
         <Compile Include="HttpError.fs" />
         <Compile Include="JsonSerializer.fs" />

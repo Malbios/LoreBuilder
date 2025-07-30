@@ -9,21 +9,25 @@ module Cards =
         
         member _.Yield _ = {
             Header = (Some kind)
-            Text = String.empty
-            Requires = None
+            Text = ""
+            Expansions = None
         }
 
         [<CustomOperation("text")>]
         member _.Text(state, value) =
             { state with Text = value }
 
-        [<CustomOperation("requires")>]
-        member _.Requires(state, value) =
-            { state with Requires = Some value }
+        [<CustomOperation("expansion")>]
+        member _.Expansion(state, value) =
+            { state with Expansions = Some (Logical.One value) }
 
-        [<CustomOperation("requires")>]
-        member _.Requires(state, value) =
-            { state with Requires = Some (Logical.One value) }
+        [<CustomOperation("expansions_any")>]
+        member _.ExpansionsAny(state, value) =
+            { state with Expansions = Some (Logical.Any value) }
+
+        [<CustomOperation("expansions_all")>]
+        member _.ExpansionsAll(state, value) =
+            { state with Expansions = Some (Logical.All value) }
 
         member _.Run(state) =
             Cue.Complex state
@@ -92,11 +96,25 @@ module Cards =
             state
 
     let icon name = Cue.Icon $"{name}.svg"
-    let any cardTypes = Logical.Any cardTypes
-    let all cardTypes = Logical.All cardTypes
     
     let background = ComplexCueBuilder("Background")
     let agenda = ComplexCueBuilder("Agenda")
+    let catalyst = ComplexCueBuilder("Catalyst")
+    let fallout = ComplexCueBuilder("Fallout")
+    let catalyst_or_fallout = ComplexCueBuilder("Catalyst/Fallout")
+    let domain = ComplexCueBuilder("Domain")
     let traitCue = ComplexCueBuilder("Trait")
+    let deityCue = ComplexCueBuilder("The")
+    
+    let faction = CardType.Faction
+    let figure = CardType.Figure
+    let event = CardType.Event
+    let location = CardType.Location
+    let object = CardType.Object
+    let creature = CardType.Creature
+    let material = CardType.Material
+    let deity = CardType.Deity
+    let emblem = CardType.Emblem
+    let modifier = CardType.Modifier
     
     let cues = CuesBuilder()
