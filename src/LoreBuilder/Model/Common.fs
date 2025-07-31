@@ -16,3 +16,8 @@ type Logical<'T> =
     | One of 'T
     | Any of 'T list
     | All of 'T list
+
+[<RequireQualifiedAccess>]
+type RotationDirection =
+    | Clockwise
+    | CounterClockwise

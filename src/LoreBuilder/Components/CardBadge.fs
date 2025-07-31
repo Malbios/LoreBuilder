@@ -32,6 +32,18 @@ type CardBadge() =
         |> _.Replace("{TextColor}", textColor)
         |> _.Replace("{CardType}", cardType)
         |> RawHtml
+        
+    let category visuals top left rotation =
+        let top = $"{top}" + "%"
+        let left = $"{left}" + "%"
+        let translate = "translate(-50%, -50%)"
+        
+        div {
+            attr.``class`` "category"
+            attr.style $"top: {top}; left: {left}; transform: {translate} rotate({rotation}deg);"
+            
+            svgCardTypeLabel visuals.PrimaryTextColor visuals.Type
+        }
     
     override _.CssScope = CssScopes.CardBadge
     
@@ -39,18 +51,6 @@ type CardBadge() =
     member val Visuals: CardVisuals = CardVisuals.empty with get, set
 
     override this.Render() =
-        
-        let category top left rotation =
-            let top = $"{top}" + "%"
-            let left = $"{left}" + "%"
-            let translate = "translate(-50%, -50%)"
-            
-            div {
-                attr.``class`` "category"
-                attr.style $"top: {top}; left: {left}; transform: {translate} rotate({rotation}deg);"
-                
-                svgCardTypeLabel this.Visuals.PrimaryTextColor this.Visuals.Type
-            }
         
         div {
             attr.``class`` "card-badge"
@@ -71,8 +71,8 @@ type CardBadge() =
                 i { attr.``class`` $"fa-solid {this.Visuals.Icon} fa-2x" }
             }
             
-            category 63 50 0
-            category 50 38 90
-            category 38 50 180
-            category 50 63 270
+            category this.Visuals 63 50 0
+            category this.Visuals  50 38 90
+            category this.Visuals  38 50 180
+            category this.Visuals  50 63 270
         }
