@@ -415,3 +415,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Claude Code local tool state (worktrees, local settings)
+.claude/
