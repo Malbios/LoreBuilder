@@ -69,10 +69,15 @@ link to the commit that resolved them.
   isn't reachable from any branch head in that fork. If that history is ever rewritten/pruned,
   the pin breaks with no local fallback. No action without the user's input on how they want to
   manage their fork.
-- [ ] `[auto-fix]` Wildcard NuGet versions in `LoreBuilder.fsproj` (`Bolero`, `Bolero.Build`,
-  ASP.NET Core WebAssembly DevServer, `System.Net.Http.Json`) make builds non-reproducible and
-  conflict with `FunSharp.Components.fsproj` pinning the same Bolero package to an exact
-  version. Will pin to currently-resolved versions.
+- [x] `[auto-fix]` Wildcard NuGet versions in `LoreBuilder.fsproj` (`Bolero`, `Bolero.Build`,
+  ASP.NET Core WebAssembly DevServer, `System.Net.Http.Json`) made builds non-reproducible and
+  conflicted with `FunSharp.Components.fsproj` pinning the same Bolero package to an older exact
+  version (`0.24.39` vs. the `0.25.63` LoreBuilder's wildcard was actually resolving to).
+  Pinned `LoreBuilder.fsproj` to the versions that were resolving (`Bolero`/`Bolero.Build`
+  `0.25.63`, `Microsoft.AspNetCore.Components.WebAssembly.DevServer` `8.0.30`,
+  `System.Net.Http.Json` `8.0.1`) and bumped `FunSharp.Components.fsproj`'s Bolero pin to match
+  `0.25.63`, so both projects now agree instead of silently unifying. Verified with
+  `dotnet build LoreBuilder.sln` (0 warnings, 0 errors).
 - [ ] `[needs decision]` No CI anywhere (no `.github/`, no pipeline config). Nothing verifies the
   4 test projects before changes land on `main`.
 - [x] `[auto-fix]` `Startup.fs` sets `LogLevel.Trace` unconditionally, shipping to a published

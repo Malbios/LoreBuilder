@@ -7,10 +7,10 @@
     <RootNamespace>LoreBuilder</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Bolero" Version="0.*" />
-    <PackageReference Include="Bolero.Build" Version="0.*" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.*" />
-    <PackageReference Include="System.Net.Http.Json" Version="8.0.*" />
+    <PackageReference Include="Bolero" Version="0.25.63" />
+    <PackageReference Include="Bolero.Build" Version="0.25.63" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.30" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.1" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="Radzen.Blazor" Version="7.1.2" />
   </ItemGroup>

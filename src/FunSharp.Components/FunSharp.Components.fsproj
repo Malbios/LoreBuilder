@@ -8,8 +8,8 @@
         <RootNamespace>FunSharp.Components</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-      <PackageReference Include="Bolero" Version="0.24.39" />
-      <PackageReference Include="Bolero.Build" Version="0.24.39" />
+      <PackageReference Include="Bolero" Version="0.25.63" />
+      <PackageReference Include="Bolero.Build" Version="0.25.63" />
     </ItemGroup>
     <ItemGroup>
       <Compile Include="HoverArea.fs" />
