@@ -75,8 +75,8 @@ link to the commit that resolved them.
   version. Will pin to currently-resolved versions.
 - [ ] `[needs decision]` No CI anywhere (no `.github/`, no pipeline config). Nothing verifies the
   4 test projects before changes land on `main`.
-- [ ] `[auto-fix]` `Startup.fs` sets `LogLevel.Trace` unconditionally, shipping to a published
-  build as-is. Will guard with `#if DEBUG`.
+- [x] `[auto-fix]` `Startup.fs` sets `LogLevel.Trace` unconditionally, shipping to a published
+  build as-is. Guarded with `#if DEBUG`/`#endif`.
 
 ## Test coverage gaps
 

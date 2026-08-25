@@ -16,7 +16,9 @@ module MyApp =
         
         let builder = WebAssemblyHostBuilder.CreateDefault(args)
         
+#if DEBUG
         builder.Logging.SetMinimumLevel(LogLevel.Trace) |> ignore
+#endif
         
         let baseAddress = Uri builder.HostEnvironment.BaseAddress
         
