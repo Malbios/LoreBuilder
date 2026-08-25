@@ -68,12 +68,14 @@ link to the commit that resolved them.
   service. The moment persistence is added, the DU-heavy domain (`CardType`, `Cue`,
   `Logical<'T>`) will silently fail to round-trip through default STJ unless this gets
   connected.
-- [ ] `[parked]` Shotgun-surgery footprint on card types — adding a new `CardType`
-  requires touching 2 exhaustive + 3 catch-all matches in `Model/Card.fs`, plus manually
-  remembering to add the new `Data/X.fs` to the hand-maintained `allCards` list in `Utils.fs`
-  (nothing enforces this stays in sync). `ClusterPosition` has a similar footprint (8 match
-  sites across `LoreCluster.fs`/`Cluster.fs`). Noted for awareness; no action planned unless
-  asked, since a fix would mean redesigning the extensibility mechanism.
+- [ ] `[parked - explicitly postponed]` Shotgun-surgery footprint on card types — adding a new
+  `CardType` requires touching 2 exhaustive + 3 catch-all matches in `Model/Card.fs`, plus
+  manually remembering to add the new `Data/X.fs` to the hand-maintained `allCards` list in
+  `Utils.fs` (nothing enforces this stays in sync). `ClusterPosition` has a similar footprint
+  (8 match sites across `LoreCluster.fs`/`Cluster.fs`). Asked the user directly; they said any
+  major architecture redesign should wait until there's been more work done on the project
+  first (it's been a while since they worked on it, and this was this session's first time) —
+  revisit once there's a better shared understanding of the codebase, not before.
 - [ ] `[needs decision - deferred]` `Union.toString`/`toList` reflection-per-render cost — used
   uncached in hot render paths (`Card.fs`, `LoreCluster.fs`); roughly 150+ reflection calls per
   `LoreCluster` render. User said not right now.
@@ -91,10 +93,17 @@ link to the commit that resolved them.
 - [x] `[auto-fix]` Fresh clone doesn't build — `external/blazor-dragdrop` submodule wasn't
   initialized and README had no setup instructions. Documented
   `git submodule update --init --recursive` plus basic build/run commands in `README.md`.
-- [ ] `[parked]` Submodule pin is fragile — the pinned commit is fetchable by SHA today but
-  isn't reachable from any branch head in that fork. If that history is ever rewritten/pruned,
-  the pin breaks with no local fallback. No action without the user's input on how they want to
-  manage their fork.
+- [x] `[needs decision]` Submodule pin is fragile — the pinned commit (`6add482b`) was fetchable
+  by SHA but wasn't reachable from any branch head in the fork, at the time this was first
+  flagged. Asked the user how they want to manage the fork; they said "keep it up-to-date" — the
+  fork exists specifically so they can make changes to it. Resolved for now: turned out
+  `6add482b` actually *was* an ancestor of `master` all along (one commit behind its tip,
+  `3a8fe4f`) — the earlier "not reachable" finding was from checking the wrong set of branches.
+  The `dropzone-cursor-feedback` branch (from [[Invalid drag targets should show a forbidden
+  cursor]]) was cleanly merged into the fork's `master` (zero file overlap, no conflicts,
+  verified with `dotnet build`/`dotnet test`) and pushed. LoreBuilder's submodule pin now points
+  at `master`'s new tip (`e70e432`). Going forward, any future fork changes should get merged to
+  `master` the same way, per the "keep it up-to-date" policy — not left on unmerged branches.
 - [x] `[auto-fix]` Wildcard NuGet versions in `LoreBuilder.fsproj` (`Bolero`, `Bolero.Build`,
   ASP.NET Core WebAssembly DevServer, `System.Net.Http.Json`) made builds non-reproducible and
   conflicted with `FunSharp.Components.fsproj` pinning the same Bolero package to an older exact
