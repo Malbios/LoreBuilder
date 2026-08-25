@@ -4,6 +4,7 @@ open Xunit
 open Faqt
 open Faqt.Operators
 open LoreBuilder.Model
+open LoreBuilder.Components
 
 [<Trait("Category", "Standard")>]
 module ``Card Tests`` =
@@ -98,3 +99,53 @@ module ``Card Tests`` =
 
             // Assert - the drag-drop library's CopyItem callback relies on this
             %(System.Object.ReferenceEquals(card, copied)).Should().BeFalse()
+
+    type ``Logical accepts``() =
+
+        [<Fact>]
+        let ``One requires an exact match`` () =
+            %(Logical.accepts (Logical.One CardType.Event) CardType.Event).Should().BeTrue()
+            %(Logical.accepts (Logical.One CardType.Event) CardType.Figure).Should().BeFalse()
+
+        [<Fact>]
+        let ``Any accepts membership in the list`` () =
+            %(Logical.accepts (Logical.Any [ CardType.Event; CardType.Figure ]) CardType.Figure).Should().BeTrue()
+            %(Logical.accepts (Logical.Any [ CardType.Event; CardType.Figure ]) CardType.Location).Should().BeFalse()
+
+        [<Fact>]
+        let ``All also accepts membership in the list (single-slot limitation)`` () =
+            %(Logical.accepts (Logical.All [ CardType.Event; CardType.Figure ]) CardType.Figure).Should().BeTrue()
+            %(Logical.accepts (Logical.All [ CardType.Event; CardType.Figure ]) CardType.Location).Should().BeFalse()
+
+    type ``CardHelpers activeCue``() =
+
+        let cues = {
+            Bottom = Some(Cue.Simple "B")
+            Left = Some(Cue.Simple "L")
+            Top = Some(Cue.Simple "T")
+            Right = Some(Cue.Simple "R")
+        }
+
+        [<Fact>]
+        let ``with activeEdge Top and no rotation, returns the card's own Top cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Top 0).Should().Be(Some(Cue.Simple "T"))
+
+        [<Fact>]
+        let ``with activeEdge Top and 180 degree rotation, returns the card's own Bottom cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Top 180).Should().Be(Some(Cue.Simple "B"))
+
+        [<Fact>]
+        let ``with activeEdge Top and 90 degree rotation, returns the card's own Left cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Top 90).Should().Be(Some(Cue.Simple "L"))
+
+        [<Fact>]
+        let ``with activeEdge Top and 270 degree rotation, returns the card's own Right cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Top 270).Should().Be(Some(Cue.Simple "R"))
+
+        [<Fact>]
+        let ``with activeEdge Bottom and no rotation, returns the card's own Bottom cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Bottom 0).Should().Be(Some(Cue.Simple "B"))
+
+        [<Fact>]
+        let ``with activeEdge Bottom and 180 degree rotation, returns the card's own Top cue`` () =
+            %(CardHelpers.activeCue cues CardEdge.Bottom 180).Should().Be(Some(Cue.Simple "T"))

@@ -97,7 +97,25 @@ module CardHelpers =
             | CardEdge.Top ->
                 edge = (CardEdge.opposite rotatedEdge)
             | _ -> failwith $"unexpected active edge value: {v}"
-            
+
+    // The single Cue currently facing the given activeEdge, accounting for rotation.
+    // Shares the edge/rotation math with isVisible so the two can't drift apart.
+    let activeCue (cues: Cues) (activeEdge: CardEdge) rotation =
+
+        let rotatedEdge = edgeFromRotation rotation
+
+        let visibleEdge =
+            match activeEdge with
+            | CardEdge.Bottom -> rotatedEdge
+            | CardEdge.Top -> CardEdge.opposite rotatedEdge
+            | _ -> failwith $"unexpected active edge value: {activeEdge}"
+
+        match visibleEdge with
+        | CardEdge.Bottom -> cues.Bottom
+        | CardEdge.Left -> cues.Left
+        | CardEdge.Top -> cues.Top
+        | CardEdge.Right -> cues.Right
+
     type CardData = {
         Class: string
         Style: string

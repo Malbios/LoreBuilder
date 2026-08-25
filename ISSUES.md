@@ -29,11 +29,24 @@ link to the commit that resolved them.
   fix was verified by build + careful trace of the data flow; a manual check is recommended
   (drop a card into a cluster's primary slot, flip it, drag any other card elsewhere on the
   page, confirm the flip persists).
-- [ ] `[needs decision - deferred]` Outer cluster slots accept any card type —
-  `LoreCluster.fs:73-76`, all four `Outer_*` positions in `acceptDrop` unconditionally return
-  `true` (`// TODO: based on inner`), while inner slots correctly enforce
-  `card.Type = cards[Primary].Type`. User asked to skip this for now and be reminded later -
-  not implemented in this pass.
+- [x] `[needs decision - deferred]` Outer cluster slots accept any card type —
+  `LoreCluster.fs:73-76`, all four `Outer_*` positions in `acceptDrop` unconditionally returned
+  `true` (`// TODO: based on inner`), while inner slots correctly enforced
+  `card.Type = cards[Primary].Type`. Resolved after talking through the actual cluster layout
+  with the owner: the rule is that whichever cue is currently facing outward on the adjacent
+  inner card (accounting for its rotation) governs its outer slot, via that cue's existing
+  `Expansions: Logical<CardType> option` field - if `None`, the outer slot doesn't accept
+  anything at all and its dropzone is now hidden entirely, not just rejecting drops.
+  Implemented: added `CardHelpers.activeCue` (`Components/Card.fs`) as a shared helper for
+  "which cue is currently facing this active edge, given rotation" - reused by both rendering
+  and this new validation so the edge/rotation math can't drift apart between them. Added
+  `Logical.accepts` (`Model/Common.fs`) as a small reusable "does this value satisfy this
+  Logical requirement" helper (`Any`/`All` both currently mean "any of these," since there's
+  only one physical outer slot per direction - not enough attachment points yet to distinguish
+  "requires all of these"). `LoreCluster.fs`'s `acceptDrop`/`showDropzone` for `Outer_*` now use
+  both. Verified with `dotnet build` (clean) and `dotnet test` (34/34 passing, including 9 new
+  tests for `Logical.accepts` and `CardHelpers.activeCue`). Not verified live in-browser through
+  actual drag-and-drop (same automation limitation as the flip-state fix above).
 - [x] `[auto-fix]` PWA manifest still has the scaffold placeholder name — `wwwroot/manifest.json`
   `name`/`short_name` are `"fsharp_pwa3"` instead of "LoreBuilder". Fixed.
 - [ ] `[parked]` PWA loses icons offline — `wwwroot/index.html` loads Font Awesome from

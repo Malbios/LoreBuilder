@@ -68,20 +68,46 @@ type LoreCluster() =
             
         let noInnerCards =
             not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
-        
+
+        let innerPositionFor outerPosition =
+            match outerPosition with
+            | ClusterPosition.Outer_Bottom -> ClusterPosition.Inner_Bottom
+            | ClusterPosition.Outer_Left -> ClusterPosition.Inner_Left
+            | ClusterPosition.Outer_Top -> ClusterPosition.Inner_Top
+            | ClusterPosition.Outer_Right -> ClusterPosition.Inner_Right
+            | other -> failwith $"{other} is not an outer position"
+
+        // What the inner card next to this outer slot expects to be attached there, based on
+        // whichever of its cues is currently facing outward (its Secondary side's Top edge,
+        // same edge math the rendering uses). None means that inner card expects nothing
+        // further - the outer slot doesn't accept any card, and its dropzone stays hidden.
+        let expectedOuterExpansion outerPosition =
+            let innerPosition = innerPositionFor outerPosition
+            let innerCard = cards[innerPosition]
+
+            if innerCard = Card.empty then
+                None
+            else
+                let rotation = cardUiStates[innerPosition].Rotation
+
+                match CardHelpers.activeCue innerCard.SecondarySide CardEdge.Top rotation with
+                | Some (Cue.Complex complexCue) -> complexCue.Expansions
+                | _ -> None
+
         let showDropzone position =
             match position with
             | ClusterPosition.Primary -> noInnerCards
-            
+
             | ClusterPosition.Inner_Bottom
             | ClusterPosition.Inner_Left
             | ClusterPosition.Inner_Top
             | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary
-            
-            | ClusterPosition.Outer_Bottom -> hasCard ClusterPosition.Inner_Bottom
-            | ClusterPosition.Outer_Left -> hasCard ClusterPosition.Inner_Left
-            | ClusterPosition.Outer_Top -> hasCard ClusterPosition.Inner_Top
-            | ClusterPosition.Outer_Right -> hasCard ClusterPosition.Inner_Right
+
+            | ClusterPosition.Outer_Bottom
+            | ClusterPosition.Outer_Left
+            | ClusterPosition.Outer_Top
+            | ClusterPosition.Outer_Right ->
+                hasCard (innerPositionFor position) && (expectedOuterExpansion position).IsSome
             
         let cardAndDropzone position =
             let card = cards[position]
@@ -99,10 +125,13 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Right ->
                     card.Type = cards[ClusterPosition.Primary].Type
                     
-                | ClusterPosition.Outer_Bottom -> true // TODO: based on inner
-                | ClusterPosition.Outer_Left -> true // TODO: based on inner
-                | ClusterPosition.Outer_Top -> true // TODO: based on inner
-                | ClusterPosition.Outer_Right -> true // TODO: based on inner
+                | ClusterPosition.Outer_Bottom
+                | ClusterPosition.Outer_Left
+                | ClusterPosition.Outer_Top
+                | ClusterPosition.Outer_Right ->
+                    match expectedOuterExpansion position with
+                    | None -> false
+                    | Some expansion -> Logical.accepts expansion card.Type
             
             let onDrop card =
                 let oldCard = cards[position]
