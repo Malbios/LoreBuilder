@@ -98,14 +98,36 @@ link to the commit that resolved them.
 
 ## Test coverage gaps
 
-- [ ] `[needs decision]` Zero coverage of the fastest-changing code — `Card`, `Cue`, `Cluster`,
-  and `Builders.fs` (touched by 5 of the last 5 commits) have no unit or E2E tests at all.
-- [ ] `[needs decision]` Playwright was set up and abandoned mid-task
-  (`LoreBuilder.Test/Tests.fs`) — the actual click/assert logic is commented out, and the test
-  is tagged `OnDemand` so it never runs by default.
-- [ ] `[needs decision]` `FunSharp.Components.Test` is a `dotnet new xunit` stub
-  (`Assert.True(true)`) despite referencing Playwright; `LoreBuilder.Test.Common` has no `.fs`
-  files at all — both are dead scaffolding.
+- [x] `[needs decision]` Zero coverage of the fastest-changing code — `Card`, `Cue`, `Cluster`,
+  and `Builders.fs` (touched by 5 of the last 5 commits) had no unit or E2E tests at all. User
+  chose "clean up + add basic domain tests." Implemented: added `LoreBuilder.Test/CardTests.fs`
+  (`CardEdge.opposite`, `CardType` presentation rules, `Card.empty`/`Card.copy`),
+  `ClusterTests.fs` (`ClusterPosition.fromIndex`/`toRotation`/`toString`), and
+  `BuildersTests.fs` (the `card`/`cues`/complex-cue computation-expression DSL, including both
+  overloads of `bottom`/`left`/`top`/`right` and the `expansion`/`expansions_any`/
+  `expansions_all` operations) — 25 tests total. This required adding a `LoreBuilder.fsproj`
+  `ProjectReference` to `LoreBuilder.Test.fsproj`, since the test project previously had no way
+  to reach the domain code at all. Verified by actually running them (not just compiling) —
+  since this sandbox only has the .NET 10 runtime and the app targets net8.0, temporarily
+  installed a local net8.0 runtime via Microsoft's official `dotnet-install.ps1` (isolated to
+  `%TEMP%`, not a system-wide change) and ran with `DOTNET_ROOT` pointed at it:
+  `Passed! - Failed: 0, Passed: 25, Skipped: 0, Total: 25`.
+- [x] `[needs decision]` Playwright was set up and abandoned mid-task
+  (`LoreBuilder.Test/Tests.fs`) — the actual click/assert logic was commented out, the test was
+  tagged `OnDemand` so it never ran by default, and it asserted a redirect to `/TestPage`, a
+  route that doesn't exist in the current app (see `Routes.fs`) — confirming it was stale, not
+  just unfinished. Removed the file, the `Microsoft.Playwright` package reference from
+  `LoreBuilder.Test.fsproj`, and the now-empty `Tests.fs` compile entry, since fixing it would
+  mean writing a new E2E test from scratch (a bigger investment than "basic domain tests").
+- [x] `[needs decision]` `FunSharp.Components.Test` was a `dotnet new xunit` stub
+  (`Assert.True(true)`) despite referencing Playwright — removed the stub test file and the
+  unused `Microsoft.Playwright` package reference; the project now has zero tests (honest, not
+  fake) since testing `HoverArea.fs` meaningfully would need a Blazor component-testing library
+  (e.g. bUnit) that isn't part of the repo today — bringing one in is a separate decision, not
+  "cleanup." `LoreBuilder.Test.Common` still has no `.fs` files, but turns out not to be pure
+  dead weight: both `LoreBuilder.Test.fsproj` and `FunSharp.Components.Test.fsproj` reference it
+  specifically to get `Faqt`/`FsCheck.Xunit` transitively, and the new domain tests above
+  confirmed that still works. Left as-is.
 - [ ] `[needs decision]` `JsonSerializer.Test.fs` only checks config flags, never an actual DU
   round-trip, so the persistence risk above is untested.
 - [x] `[needs decision]` `FunSharp.Common/AsyncResult.fs` and `HttpError.fs` were unused anywhere
