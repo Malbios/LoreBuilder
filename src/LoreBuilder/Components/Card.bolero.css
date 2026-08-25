@@ -186,3 +186,8 @@
     top: 5px;
     right: 5px;
 }
+
+.remove-button {
+    bottom: 5px;
+    left: 5px;
+}

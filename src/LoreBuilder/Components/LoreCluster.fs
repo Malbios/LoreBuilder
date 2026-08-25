@@ -133,11 +133,15 @@ type LoreCluster() =
                     | None -> false
                     | Some expansion -> Logical.accepts expansion card.Type
             
-            let onDrop card =
+            let replaceCard newCard =
                 let oldCard = cards[position]
-                cards[position] <- card
+                cards[position] <- newCard
                 cardUiStates[position] <- initialUiState position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
+
+            let onDrop card = replaceCard card
+
+            let onRemove () = replaceCard Card.empty
             
             let blinkerClass =
                 if this.DropzonesAreActive then " blink_me" else ""
@@ -213,9 +217,14 @@ type LoreCluster() =
                             "Rotation" => cardUiStates[position].Rotation
                             "CanBeFlipped" => canBeFlipped
                             "CanBeRotated" => canBeRotated
+                            // Removing a card follows the same "nothing depends on it" rule as
+                            // rotating it - an outer card is always free to remove, but an inner
+                            // or primary card can't be pulled out from under a card attached to it.
+                            "CanBeRemoved" => canBeRotated
                             "ActiveEdge" => activeEdge
                             "OnCurrentSideChanged" => onCurrentSideChanged
                             "OnRotationChanged" => onRotationChanged
+                            "OnRemove" => onRemove
                         }
                     else
                         div { attr.style $"width: 270px; height: 270px;" }

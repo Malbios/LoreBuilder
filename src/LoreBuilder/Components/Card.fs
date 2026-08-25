@@ -196,7 +196,10 @@ type Card() =
     
     [<Parameter>]
     member val CanBeRotated = true with get, set
-    
+
+    [<Parameter>]
+    member val CanBeRemoved = false with get, set
+
     [<Parameter>]
     member val ActiveEdge = None with get, set
     
@@ -211,6 +214,9 @@ type Card() =
 
     [<Parameter>]
     member val OnRotationChanged: int -> unit = ignore with get, set
+
+    [<Parameter>]
+    member val OnRemove: unit -> unit = ignore with get, set
 
     member private this.FlippedClass () =
         
@@ -237,8 +243,15 @@ type Card() =
         this.OnRotationChanged this.Rotation
             
     member private this.ArrowsVisibility () =
-        
+
         if this.CanBeRotated && not this.IsFlipping && this.IsHovered then
+            "visibility: visible; opacity: 1;"
+        else
+            "visibility: hidden; opacity: 0;"
+
+    member private this.RemoveButtonVisibility () =
+
+        if this.CanBeRemoved && not this.IsFlipping && this.IsHovered then
             "visibility: visible; opacity: 1;"
         else
             "visibility: hidden; opacity: 0;"
@@ -300,7 +313,11 @@ type Card() =
                 
             let rotateClockwise (_: MouseEventArgs) =
                 this.Rotate RotationDirection.Clockwise
-            
+
+            let remove (_: MouseEventArgs) =
+                this.OnRemove ()
+
             CardHelpers.arrow "arrow-left" (this.ArrowsVisibility ()) controlColor rotateCounterClockwise "fa-rotate-left"
             CardHelpers.arrow "arrow-right" (this.ArrowsVisibility ()) controlColor rotateClockwise "fa-rotate-right"
+            CardHelpers.arrow "remove-button" (this.RemoveButtonVisibility ()) controlColor remove "fa-trash"
         }
