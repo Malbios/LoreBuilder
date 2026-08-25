@@ -55,7 +55,7 @@ link to the commit that resolved them.
   service. The moment persistence is added, the DU-heavy domain (`CardType`, `Cue`,
   `Logical<'T>`) will silently fail to round-trip through default STJ unless this gets
   connected.
-- [ ] `[needs decision]` Shotgun-surgery footprint on card types — adding a new `CardType`
+- [ ] `[parked]` Shotgun-surgery footprint on card types — adding a new `CardType`
   requires touching 2 exhaustive + 3 catch-all matches in `Model/Card.fs`, plus manually
   remembering to add the new `Data/X.fs` to the hand-maintained `allCards` list in `Utils.fs`
   (nothing enforces this stays in sync). `ClusterPosition` has a similar footprint (8 match
@@ -128,7 +128,7 @@ link to the commit that resolved them.
   dead weight: both `LoreBuilder.Test.fsproj` and `FunSharp.Components.Test.fsproj` reference it
   specifically to get `Faqt`/`FsCheck.Xunit` transitively, and the new domain tests above
   confirmed that still works. Left as-is.
-- [ ] `[needs decision]` `JsonSerializer.Test.fs` only checks config flags, never an actual DU
+- [ ] `[parked]` `JsonSerializer.Test.fs` only checks config flags, never an actual DU
   round-trip, so the persistence risk above is untested.
 - [x] `[needs decision]` `FunSharp.Common/AsyncResult.fs` and `HttpError.fs` were unused anywhere
   in this app and untested. User confirmed they're not needed elsewhere — deleted both files
