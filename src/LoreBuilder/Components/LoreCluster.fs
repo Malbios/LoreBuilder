@@ -12,12 +12,36 @@ open Plk.Blazor.DragDrop
 
 type LoreCluster() =
     inherit Component()
-        
+
+    // The side/rotation a slot's card shows by default, before any user interaction -
+    // Inner slots face inward (Secondary), everything else faces outward (Primary).
+    let initialUiState position =
+        let side =
+            match position with
+            | ClusterPosition.Primary -> CardSide.Primary
+            | ClusterPosition.Inner_Bottom
+            | ClusterPosition.Inner_Left
+            | ClusterPosition.Inner_Top
+            | ClusterPosition.Inner_Right -> CardSide.Secondary
+            | ClusterPosition.Outer_Bottom
+            | ClusterPosition.Outer_Left
+            | ClusterPosition.Outer_Top
+            | ClusterPosition.Outer_Right -> CardSide.Primary
+        { CardUiState.initial with CurrentSide = side }
+
     let cards =
         Union.toList<ClusterPosition>()
         |> List.map(fun position -> (position, Card.empty))
         |> Dictionary.ofList
-    
+
+    // Owns each slot's current side/rotation so it can be passed down on every render
+    // without fighting Card's own local state (Card notifies us via OnCurrentSideChanged/
+    // OnRotationChanged whenever the user flips/rotates it).
+    let cardUiStates =
+        Union.toList<ClusterPosition>()
+        |> List.map(fun position -> (position, initialUiState position))
+        |> Dictionary.ofList
+
     override _.CssScope = CssScopes.LoreCluster
     
     [<Inject>]
@@ -31,6 +55,11 @@ type LoreCluster() =
     
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
+
+    // StateHasChanged is protected and can't be called directly from within a lambda -
+    // this member wrapper is the standard F#/Blazor workaround.
+    member private this.NotifyStateChanged() =
+        this.StateHasChanged()
 
     override this.Render() =
         
@@ -78,6 +107,7 @@ type LoreCluster() =
             let onDrop card =
                 let oldCard = cards[position]
                 cards[position] <- card
+                cardUiStates[position] <- initialUiState position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
             
             let blinkerClass =
@@ -86,18 +116,14 @@ type LoreCluster() =
             let pointerEventsClass =
                 if this.DropzonesAreActive then " auto-pointer" else " no-pointer"
                 
-            let cardSide =
-                match position with
-                | ClusterPosition.Primary -> CardSide.Primary
-                | ClusterPosition.Inner_Bottom
-                | ClusterPosition.Inner_Left
-                | ClusterPosition.Inner_Top
-                | ClusterPosition.Inner_Right -> CardSide.Secondary
-                | ClusterPosition.Outer_Bottom
-                | ClusterPosition.Outer_Left
-                | ClusterPosition.Outer_Top
-                | ClusterPosition.Outer_Right -> CardSide.Primary
-                
+            let onCurrentSideChanged newSide =
+                cardUiStates[position] <- { cardUiStates[position] with CurrentSide = newSide }
+                this.NotifyStateChanged()
+
+            let onRotationChanged newRotation =
+                cardUiStates[position] <- { cardUiStates[position] with Rotation = newRotation }
+                this.NotifyStateChanged()
+
             let activeEdge =
                 match position with
                 | ClusterPosition.Primary -> if noInnerCards then None else Some CardEdge.Bottom
@@ -154,10 +180,13 @@ type LoreCluster() =
                         comp<LoreBuilder.Components.Card> {
                             "Data" => card
                             "Size" => 270
-                            "CurrentSide" => cardSide
+                            "CurrentSide" => cardUiStates[position].CurrentSide
+                            "Rotation" => cardUiStates[position].Rotation
                             "CanBeFlipped" => canBeFlipped
                             "CanBeRotated" => canBeRotated
                             "ActiveEdge" => activeEdge
+                            "OnCurrentSideChanged" => onCurrentSideChanged
+                            "OnRotationChanged" => onRotationChanged
                         }
                     else
                         div { attr.style $"width: 270px; height: 270px;" }

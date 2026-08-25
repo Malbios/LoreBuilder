@@ -8,6 +8,19 @@ type CardSide =
     | Primary
     | Secondary
 
+type CardUiState = {
+    CurrentSide: CardSide
+    Rotation: int
+}
+
+[<RequireQualifiedAccess>]
+module CardUiState =
+
+    let initial = {
+        CurrentSide = CardSide.Primary
+        Rotation = 0
+    }
+
 [<RequireQualifiedAccess>]
 type CardEdge =
     | Bottom

@@ -11,15 +11,29 @@ link to the commit that resolved them.
   (`randomCards`) iterates `Union.toList<CardType>()`, which includes `Unknown`, so every demo
   page (`StackTest`, `CardTest`, `DragDropTest`) renders an extra bogus "?" card. Fixed by
   filtering `Unknown` out before mapping to `randomCard`.
-- [ ] `[needs decision]` Flipped cards silently reset — `Components/Card.fs:197-211` mutates its
+- [x] `[needs decision]` Flipped cards silently reset — `Components/Card.fs:197-211` mutated its
   own `[<Parameter>]` fields (`CurrentSide`, `Rotation`) directly in event handlers instead of
-  raising events to the parent. `LoreCluster.fs:154-161` re-passes `CurrentSide` on every
-  render, so any re-render of the cluster (e.g. `DropzonesAreActive` toggling while dragging
-  anywhere on the page) forcibly resets a card's flip state.
-- [ ] `[needs decision]` Outer cluster slots accept any card type — `LoreCluster.fs:73-76`, all
-  four `Outer_*` positions in `acceptDrop` unconditionally return `true`
-  (`// TODO: based on inner`), while inner slots correctly enforce
-  `card.Type = cards[Primary].Type`.
+  raising events to the parent. `LoreCluster.fs:154-161` re-passed a fixed, position-derived
+  `CurrentSide` on every render, so any re-render of the cluster forcibly reset a flipped card
+  back to its default side. User chose to lift the state into `LoreCluster`. Implemented:
+  `Card` now takes `OnCurrentSideChanged`/`OnRotationChanged` callbacks (still self-manages its
+  local field too, so standalone usage in `CardTest`/`StackTest`/`DragDropTest` is unaffected);
+  `LoreCluster` now owns a `cardUiStates: Dictionary<ClusterPosition, CardUiState>` (new
+  `CardUiState` type in `Model/Card.fs`) as the source of truth, initialized per-position to the
+  same defaults the old static logic used, reset on `onDrop`, and passed down explicitly every
+  render. Verified with `dotnet build` (0 warnings/errors) and manually in-browser: standalone
+  card flip on `/CardTest` still works correctly (regression check). Could not fully exercise
+  the LoreCluster drag-and-drop path via browser automation in this session - the app's native
+  HTML5 drag-and-drop resisted both mouse-simulated and synthetic-DragEvent automation (the
+  likely reason the repo's own `LoreBuilder.Test` Playwright test was left half-written). The
+  fix was verified by build + careful trace of the data flow; a manual check is recommended
+  (drop a card into a cluster's primary slot, flip it, drag any other card elsewhere on the
+  page, confirm the flip persists).
+- [ ] `[needs decision - deferred]` Outer cluster slots accept any card type —
+  `LoreCluster.fs:73-76`, all four `Outer_*` positions in `acceptDrop` unconditionally return
+  `true` (`// TODO: based on inner`), while inner slots correctly enforce
+  `card.Type = cards[Primary].Type`. User asked to skip this for now and be reminded later -
+  not implemented in this pass.
 - [x] `[auto-fix]` PWA manifest still has the scaffold placeholder name — `wwwroot/manifest.json`
   `name`/`short_name` are `"fsharp_pwa3"` instead of "LoreBuilder". Fixed.
 - [ ] `[parked]` PWA loses icons offline — `wwwroot/index.html` loads Font Awesome from
@@ -47,10 +61,9 @@ link to the commit that resolved them.
   (nothing enforces this stays in sync). `ClusterPosition` has a similar footprint (8 match
   sites across `LoreCluster.fs`/`Cluster.fs`). Noted for awareness; no action planned unless
   asked, since a fix would mean redesigning the extensibility mechanism.
-- [ ] `[needs decision]` `Union.toString`/`toList` reflection-per-render cost — used uncached in
-  hot render paths (`Card.fs`, `LoreCluster.fs`); roughly 150+ reflection calls per
-  `LoreCluster` render. Performance concern, not a correctness bug — needs a decision on
-  whether to cache now or defer.
+- [ ] `[needs decision - deferred]` `Union.toString`/`toList` reflection-per-render cost — used
+  uncached in hot render paths (`Card.fs`, `LoreCluster.fs`); roughly 150+ reflection calls per
+  `LoreCluster` render. User said not right now.
 - [x] `[auto-fix]` `Card.copy` (`Model/Card.fs:177-179`) reads as dead code
   (`{ card with Type = card.Type }`) but isn't actually broken — F# record-update always
   allocates a new reference, which is exactly what its call site in `StackTest.fs`'s
@@ -78,8 +91,8 @@ link to the commit that resolved them.
   `System.Net.Http.Json` `8.0.1`) and bumped `FunSharp.Components.fsproj`'s Bolero pin to match
   `0.25.63`, so both projects now agree instead of silently unifying. Verified with
   `dotnet build LoreBuilder.sln` (0 warnings, 0 errors).
-- [ ] `[needs decision]` No CI anywhere (no `.github/`, no pipeline config). Nothing verifies the
-  4 test projects before changes land on `main`.
+- [ ] `[needs decision - deferred]` No CI anywhere (no `.github/`, no pipeline config). Nothing
+  verifies the 4 test projects before changes land on `main`. User said not right now.
 - [x] `[auto-fix]` `Startup.fs` sets `LogLevel.Trace` unconditionally, shipping to a published
   build as-is. Guarded with `#if DEBUG`/`#endif`.
 

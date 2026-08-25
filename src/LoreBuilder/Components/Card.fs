@@ -187,7 +187,13 @@ type Card() =
     
     [<Parameter>]
     member val Rotation = 0 with get, set
-    
+
+    [<Parameter>]
+    member val OnCurrentSideChanged: CardSide -> unit = ignore with get, set
+
+    [<Parameter>]
+    member val OnRotationChanged: int -> unit = ignore with get, set
+
     member private this.FlippedClass () =
         
         match this.CurrentSide with
@@ -195,20 +201,22 @@ type Card() =
         | CardSide.Secondary -> " flipped-card"
         
     member private this.Flip () =
-        
+
         if this.CanBeFlipped then
             this.CurrentSide <-
                 match this.CurrentSide with
                 | CardSide.Primary -> CardSide.Secondary
                 | CardSide.Secondary -> CardSide.Primary
-                
+            this.OnCurrentSideChanged this.CurrentSide
+
     member private this.Rotate direction =
-        
+
         match direction with
         | RotationDirection.Clockwise ->
             this.Rotation <- this.Rotation + 90
         | RotationDirection.CounterClockwise ->
             this.Rotation <- this.Rotation - 90
+        this.OnRotationChanged this.Rotation
             
     member private this.ArrowsVisibility () =
         
