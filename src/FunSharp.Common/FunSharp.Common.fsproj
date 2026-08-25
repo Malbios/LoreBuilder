@@ -10,9 +10,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Union.fs" />
-        <Compile Include="HttpError.fs" />
         <Compile Include="JsonSerializer.fs" />
-        <Compile Include="AsyncResult.fs" />
         <Compile Include="Utils.fs" />
         <Compile Include="List.fs" />
         <Compile Include="Dictionary.fs" />

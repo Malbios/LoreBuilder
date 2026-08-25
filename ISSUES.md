@@ -95,6 +95,7 @@ link to the commit that resolved them.
   files at all — both are dead scaffolding.
 - [ ] `[needs decision]` `JsonSerializer.Test.fs` only checks config flags, never an actual DU
   round-trip, so the persistence risk above is untested.
-- [ ] `[needs decision]` `FunSharp.Common/AsyncResult.fs` and `HttpError.fs` are unused anywhere
-  in this app (likely carried over from another project using the same shared library) and
-  untested. Not deleted without confirming they're not needed elsewhere.
+- [x] `[needs decision]` `FunSharp.Common/AsyncResult.fs` and `HttpError.fs` were unused anywhere
+  in this app and untested. User confirmed they're not needed elsewhere — deleted both files
+  and their `Compile Include` entries in `FunSharp.Common.fsproj`. Verified with
+  `dotnet build LoreBuilder.sln`.
