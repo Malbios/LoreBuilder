@@ -5,6 +5,7 @@
     <LangVersion>default</LangVersion>
     <BlazorWebAssemblyEnableLinking>false</BlazorWebAssemblyEnableLinking>
     <RootNamespace>LoreBuilder</RootNamespace>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Bolero" Version="0.25.63" />
