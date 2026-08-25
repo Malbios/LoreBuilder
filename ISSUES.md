@@ -20,8 +20,8 @@ link to the commit that resolved them.
   four `Outer_*` positions in `acceptDrop` unconditionally return `true`
   (`// TODO: based on inner`), while inner slots correctly enforce
   `card.Type = cards[Primary].Type`.
-- [ ] `[auto-fix]` PWA manifest still has the scaffold placeholder name — `wwwroot/manifest.json`
-  `name`/`short_name` are `"fsharp_pwa3"` instead of "LoreBuilder".
+- [x] `[auto-fix]` PWA manifest still has the scaffold placeholder name — `wwwroot/manifest.json`
+  `name`/`short_name` are `"fsharp_pwa3"` instead of "LoreBuilder". Fixed.
 - [ ] `[parked]` PWA loses icons offline — `wwwroot/index.html` loads Font Awesome from
   `cdnjs.cloudflare.com`, which isn't part of `self.assetsManifest` and is never cached by the
   service worker. Not touched in this pass (would need a decision on self-hosting the font
