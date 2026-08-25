@@ -44,8 +44,9 @@ module Utils =
     }
 
     let randomCards =
-        
+
         Union.toList<CardType>()
+        |> List.filter (fun cardType -> cardType <> CardType.Unknown)
         |> List.map randomCard
         
     let allCards = [

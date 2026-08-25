@@ -7,9 +7,10 @@ link to the commit that resolved them.
 
 ## Bugs (things broken today)
 
-- [ ] `[auto-fix]` `CardType.Unknown` leaks into "all card types" iteration — `Utils.fs:46-49`
+- [x] `[auto-fix]` `CardType.Unknown` leaks into "all card types" iteration — `Utils.fs:46-49`
   (`randomCards`) iterates `Union.toList<CardType>()`, which includes `Unknown`, so every demo
-  page (`StackTest`, `CardTest`, `DragDropTest`) renders an extra bogus "?" card.
+  page (`StackTest`, `CardTest`, `DragDropTest`) renders an extra bogus "?" card. Fixed by
+  filtering `Unknown` out before mapping to `randomCard`.
 - [ ] `[needs decision]` Flipped cards silently reset — `Components/Card.fs:197-211` mutates its
   own `[<Parameter>]` fields (`CurrentSide`, `Rotation`) directly in event handlers instead of
   raising events to the parent. `LoreCluster.fs:154-161` re-passes `CurrentSide` on every
