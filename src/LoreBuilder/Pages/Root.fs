@@ -10,21 +10,21 @@ type Root() =
     override _.CssScope = CssScopes.LoreBuilder
 
     override this.Render() =
-        
+
         div {
             attr.``class`` "center-wrapper"
-            
+
             comp<RadzenStack> {
                 attr.style "height: 100%"
 
                 "JustifyContent" => Radzen.JustifyContent.Center
                 "AlignItems" => Radzen.AlignItems.Center
+                "Gap" => "0.5rem"
 
-                comp<RadzenProgressBarCircular> {
-                    "ShowValue" => false
-                    "Mode" => Radzen.ProgressBarMode.Indeterminate
-                }
-                
-                // TODO: after a second or two, the page should reload with a link list for all test pages
+                a { attr.href "/CardTest"; "Card Test" }
+                a { attr.href "/StackTest"; "Stack Test" }
+                a { attr.href "/DragDropTest"; "Drag & Drop Test" }
+                a { attr.href "/LoreClusterTest"; "Lore Cluster Test" }
+                a { attr.href "/HoverTest"; "Hover Test" }
             }
         }
