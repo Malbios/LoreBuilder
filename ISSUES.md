@@ -62,9 +62,9 @@ link to the commit that resolved them.
 
 ## Build / infra
 
-- [ ] `[auto-fix]` Fresh clone doesn't build — `external/blazor-dragdrop` submodule wasn't
-  initialized and README had no setup instructions. Will document
-  `git submodule update --init --recursive` in `README.md`.
+- [x] `[auto-fix]` Fresh clone doesn't build — `external/blazor-dragdrop` submodule wasn't
+  initialized and README had no setup instructions. Documented
+  `git submodule update --init --recursive` plus basic build/run commands in `README.md`.
 - [ ] `[parked]` Submodule pin is fragile — the pinned commit is fetchable by SHA today but
   isn't reachable from any branch head in that fork. If that history is ever rewritten/pruned,
   the pin breaks with no local fallback. No action without the user's input on how they want to
