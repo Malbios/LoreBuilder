@@ -51,10 +51,10 @@ link to the commit that resolved them.
   hot render paths (`Card.fs`, `LoreCluster.fs`); roughly 150+ reflection calls per
   `LoreCluster` render. Performance concern, not a correctness bug — needs a decision on
   whether to cache now or defer.
-- [ ] `[auto-fix]` `Card.copy` (`Model/Card.fs:177-179`) reads as dead code
+- [x] `[auto-fix]` `Card.copy` (`Model/Card.fs:177-179`) reads as dead code
   (`{ card with Type = card.Type }`) but isn't actually broken — F# record-update always
   allocates a new reference, which is exactly what its call site in `StackTest.fs`'s
-  `Dropzone<Card>` `CopyItem` callback needs. Will be documented with a comment instead of
+  `Dropzone<Card>` `CopyItem` callback needs. Documented with a comment instead of
   renamed/removed, to stop a future cleanup pass from "simplifying" it away.
 - [ ] `[parked]` No `key` on `for` loops rendering `comp<>` (`LoreClusterTest.fs`, `CardTest.fs`,
   `StackTest.fs`). Harmless today since the lists are static; would only matter once

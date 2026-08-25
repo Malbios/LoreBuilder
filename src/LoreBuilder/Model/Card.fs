@@ -174,6 +174,10 @@ module Card =
         SecondarySide = Cues.empty
     }
     
+    // Forces a fresh reference (F# record-update always allocates a new object, even
+    // when no field's value changes), which is what Dropzone<Card>'s CopyItem callback
+    // in StackTest.fs needs. Card has structural equality, so `copy c = c` is still true -
+    // this is about reference identity, not producing a distinguishable value.
     let copy (card: Card) = {
         card with Type = card.Type
     }
