@@ -52,6 +52,7 @@ type LoreClusterTest() =
                 
                 for cards in this.Cards do
                     comp<CardStack> {
+                        attr.key (List.head cards).Type
                         "Size" => 110
                         "Cards" => cards
                         "OnDragStart" => fun () ->
@@ -66,8 +67,9 @@ type LoreClusterTest() =
             div {
                 attr.``class`` "test-clusters"
                 
-                for _ in [1..4] do
+                for index in [ 1..4 ] do
                     comp<LoreCluster> {
+                        attr.key index
                         "DropzonesAreActive" => model.IsDragging
                     }
             }

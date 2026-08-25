@@ -58,6 +58,7 @@ type StackTest() =
                 
                 for card in cards do
                     comp<CardStack> {
+                        attr.key card.Type
                         "Size" => 110
                         "Cards" => [card]
                     }

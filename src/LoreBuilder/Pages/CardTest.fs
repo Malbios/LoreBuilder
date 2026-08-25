@@ -21,6 +21,7 @@ type CardTest() =
             
             for card in Utils.randomCards do
                 comp<Card> {
+                    attr.key card.Type
                     "Size" => 270
                     "Data" => card
                 }
