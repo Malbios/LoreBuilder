@@ -56,6 +56,9 @@ type LoreCluster() =
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
 
+    [<Parameter>]
+    member val OnClusterStarted: unit -> unit = ignore with get, set
+
     // StateHasChanged is protected and can't be called directly from within a lambda -
     // this member wrapper is the standard F#/Blazor workaround.
     member private this.NotifyStateChanged() =
@@ -138,6 +141,8 @@ type LoreCluster() =
                 cards[position] <- newCard
                 cardUiStates[position] <- initialUiState position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
+                if position = ClusterPosition.Primary && oldCard = Card.empty && newCard <> Card.empty then
+                    this.OnClusterStarted()
 
             let onDrop card = replaceCard card
 

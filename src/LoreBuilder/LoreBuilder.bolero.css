@@ -16,3 +16,63 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
 }
+
+.home-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+.activity-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 48px;
+    padding-top: 0.5rem;
+}
+
+.activity-bar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.activity-bar-icon.active {
+    background-color: rgba(128, 128, 128, 0.25);
+}
+
+.activity-bar-icon:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+.side-panel {
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 0.2s ease;
+}
+
+.side-panel-content {
+    width: 280px;
+    height: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.canvas-area {
+    position: relative;
+    flex: 1;
+    overflow: auto;
+}
+
+.canvas-cell {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

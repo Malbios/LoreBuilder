@@ -70,13 +70,13 @@
     <None Include="Components\CardStack.bolero.css" />
     <Compile Include="Components\LoreCluster.fs" />
     <None Include="Components\LoreCluster.bolero.css" />
-    <Compile Include="Pages\Root.fs" />
     <Compile Include="Pages\NotFound.fs" />
     <Compile Include="Pages\HoverTest.fs" />
     <Compile Include="Pages\CardTest.fs" />
     <Compile Include="Pages\DragDropTest.fs" />
     <Compile Include="Pages\StackTest.fs" />
     <Compile Include="Pages\LoreClusterTest.fs" />
+    <Compile Include="Pages\Home.fs" />
     <Compile Include="Update.fs" />
     <Compile Include="Main.fs" />
     <None Include="LoreBuilder.bolero.css" />
