@@ -217,8 +217,19 @@ type Home() =
 
                 let pointerEventsClass = if model.IsDragging then " auto-pointer" else " no-pointer"
 
+                // Sized to the actual extent of the known clusters (plus one cellSize of margin
+                // on every side, enough to catch a drop-anywhere placed just outside them) rather
+                // than a large fixed area - a fixed size would force .canvas-area's scrollable
+                // region to that size regardless of how few clusters actually exist.
+                let minX = clusterPositions.Values |> Seq.map fst |> Seq.min
+                let maxX = clusterPositions.Values |> Seq.map fst |> Seq.max
+                let minY = clusterPositions.Values |> Seq.map snd |> Seq.min
+                let maxY = clusterPositions.Values |> Seq.map snd |> Seq.max
+
                 div {
                     attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
+                    attr.style
+                        $"left: {minX - cellSize}px; top: {minY - cellSize}px; width: {maxX - minX + cellSize * 3.0}px; height: {maxY - minY + cellSize * 3.0}px;"
 
                     comp<Dropzone<Card>> {
                         "Items" => List<Card>()
