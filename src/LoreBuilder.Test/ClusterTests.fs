@@ -68,3 +68,45 @@ module ``Cluster Tests`` =
         let ``lowercases the case name`` () =
             %(ClusterPosition.toString ClusterPosition.Inner_Bottom).Should().Be("inner_bottom")
             %(ClusterPosition.toString ClusterPosition.Primary).Should().Be("primary")
+
+    type ``GridPosition neighbors``() =
+
+        [<Fact>]
+        let ``moves one step in each of the four directions from the origin`` () =
+            // Act
+            let actual = GridPosition.neighbors GridPosition.origin
+
+            // Assert
+            %actual.Should().Be([
+                { X = -1; Y = 0 }
+                { X = 1; Y = 0 }
+                { X = 0; Y = -1 }
+                { X = 0; Y = 1 }
+            ])
+
+        [<Fact>]
+        let ``moves relative to a non-origin position`` () =
+            // Arrange
+            let position = { X = 3; Y = -2 }
+
+            // Act
+            let actual = GridPosition.neighbors position
+
+            // Assert
+            %actual.Should().Be([
+                { X = 2; Y = -2 }
+                { X = 4; Y = -2 }
+                { X = 3; Y = -3 }
+                { X = 3; Y = -1 }
+            ])
+
+        [<Fact>]
+        let ``left/right and up/down are each other's inverse`` () =
+            // Arrange
+            let position = { X = 5; Y = 7 }
+
+            // Assert
+            %(GridPosition.right (GridPosition.left position)).Should().Be(position)
+            %(GridPosition.left (GridPosition.right position)).Should().Be(position)
+            %(GridPosition.down (GridPosition.up position)).Should().Be(position)
+            %(GridPosition.up (GridPosition.down position)).Should().Be(position)

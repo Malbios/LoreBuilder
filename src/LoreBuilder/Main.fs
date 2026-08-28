@@ -33,7 +33,7 @@ type ClientApplication() =
                     
                     cond model.Page
                     <| function
-                        | Page.Root -> comp<Pages.Root> { attr.empty() }
+                        | Page.Root -> comp<Pages.Home> { attr.empty() }
                         | Page.NotFound -> comp<Pages.NotFound> { attr.empty() }
                         | Page.HoverTest -> ecomp<Pages.HoverTest,_,_> model.HoverTest hoverTestDispatch { attr.empty() }
                         | Page.CardTest -> comp<Pages.CardTest> { attr.empty() }
