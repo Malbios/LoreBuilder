@@ -7,12 +7,20 @@ open LoreBuilder
 open LoreBuilder.Components
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
+open Microsoft.AspNetCore.Components.Web
 open Microsoft.Extensions.Logging
 
 type private HomeModel = {
     GridPositions: HashSet<GridPosition>
     IsDragging: bool
     IsPanelOpen: bool
+    // The grid position currently being freely repositioned by the user (if any), and the
+    // mouse/offset it started from - used to compute the live offset on every mousemove.
+    DraggingCluster: GridPosition option
+    DragStartMouseX: float
+    DragStartMouseY: float
+    DragStartOffsetX: float
+    DragStartOffsetY: float
 }
 
 type Home() =
@@ -22,6 +30,11 @@ type Home() =
         GridPositions = HashSet<GridPosition>([ GridPosition.origin ])
         IsDragging = false
         IsPanelOpen = false
+        DraggingCluster = None
+        DragStartMouseX = 0.0
+        DragStartMouseY = 0.0
+        DragStartOffsetX = 0.0
+        DragStartOffsetY = 0.0
     }
 
     // The pixel size of one grid cell, and how much headroom (in cells) the canvas starts with
@@ -30,6 +43,17 @@ type Home() =
     // single direction will need manual scrolling - see ISSUES.md / the Home page's kanban card.
     let cellSize = 550
     let offset = cellSize
+
+    // Freeform pixel offset a cluster has been dragged to, on top of its natural grid position.
+    // Absent entry means "still at its natural grid position." Kept outside the HomeModel record
+    // (like LoreCluster's own `cards`/`cardUiStates`) since it's mutated on every mousemove
+    // while dragging - reconstructing the whole record that often would be wasteful.
+    let clusterOffsets = Dictionary<GridPosition, float * float>()
+
+    let offsetFor position =
+        match clusterOffsets.TryGetValue position with
+        | true, value -> value
+        | false, _ -> (0.0, 0.0)
 
     override _.CssScope = CssScopes.LoreBuilder
 
@@ -50,10 +74,49 @@ type Home() =
 
         if addedAny then this.TriggerReRender()
 
+    member this.StartClusterDrag (position: GridPosition) (e: MouseEventArgs) =
+
+        let currentOffsetX, currentOffsetY = offsetFor position
+
+        model <- {
+            model with
+                DraggingCluster = Some position
+                DragStartMouseX = e.ClientX
+                DragStartMouseY = e.ClientY
+                DragStartOffsetX = currentOffsetX
+                DragStartOffsetY = currentOffsetY
+        }
+
+        this.TriggerReRender()
+
+    member this.UpdateClusterDrag (e: MouseEventArgs) =
+
+        match model.DraggingCluster with
+        | None -> ()
+        | Some position ->
+            let deltaX = e.ClientX - model.DragStartMouseX
+            let deltaY = e.ClientY - model.DragStartMouseY
+
+            clusterOffsets[position] <- (model.DragStartOffsetX + deltaX, model.DragStartOffsetY + deltaY)
+
+            this.TriggerReRender()
+
+    member this.EndClusterDrag() =
+
+        if model.DraggingCluster.IsSome then
+            model <- { model with DraggingCluster = None }
+            this.TriggerReRender()
+
     override this.Render() =
 
         div {
             attr.``class`` "home-layout"
+
+            // Listening this high up (rather than just on .canvas-area) means a fast drag that
+            // briefly carries the cursor over the sidebar/activity-bar still keeps tracking -
+            // only leaving the browser window entirely would lose it.
+            on.mousemove (fun e -> this.UpdateClusterDrag e)
+            on.mouseup (fun _ -> this.EndClusterDrag())
 
             div {
                 attr.``class`` "activity-bar"
@@ -99,16 +162,19 @@ type Home() =
                 attr.``class`` "canvas-area"
 
                 for position in model.GridPositions do
+                    let offsetX, offsetY = offsetFor position
+
                     div {
                         attr.key position
                         attr.``class`` "canvas-cell"
 
                         attr.style
-                            $"left: {offset + position.X * cellSize}px; top: {offset + position.Y * cellSize}px; width: {cellSize}px; height: {cellSize}px;"
+                            $"left: {offset + position.X * cellSize + int offsetX}px; top: {offset + position.Y * cellSize + int offsetY}px; width: {cellSize}px; height: {cellSize}px;"
 
                         comp<LoreCluster> {
                             "DropzonesAreActive" => model.IsDragging
                             "OnClusterStarted" => fun () -> this.OnClusterStarted position
+                            "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag position e
                         }
                     }
             }

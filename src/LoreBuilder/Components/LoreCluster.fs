@@ -7,6 +7,7 @@ open Bolero.Html
 open FunSharp.Common
 open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
+open Microsoft.AspNetCore.Components.Web
 open Microsoft.Extensions.Logging
 open Plk.Blazor.DragDrop
 
@@ -58,6 +59,12 @@ type LoreCluster() =
 
     [<Parameter>]
     member val OnClusterStarted: unit -> unit = ignore with get, set
+
+    // Fired on mousedown on the primary card specifically - the grab handle for repositioning
+    // the whole cluster on a free-form canvas (e.g. Pages/Home.fs). Not wired to Inner/Outer
+    // cards - only the primary card serves as the drag handle for the whole cluster.
+    [<Parameter>]
+    member val OnPrimaryMouseDown: MouseEventArgs -> unit = ignore with get, set
 
     // StateHasChanged is protected and can't be called directly from within a lambda -
     // this member wrapper is the standard F#/Blazor workaround.
@@ -189,10 +196,10 @@ type LoreCluster() =
                 | ClusterPosition.Outer_Top
                 | ClusterPosition.Outer_Right -> true
                 
-            let canBeFlipped =
-                match position with
-                | ClusterPosition.Primary -> noInnerCards
-                | _ -> false
+            // The primary card is never flippable in a cluster - it's only rotatable and
+            // removable, which frees up "click-and-drag the body" as the whole-cluster
+            // drag handle without it fighting a flip-on-click gesture.
+            let canBeFlipped = false
             
             concat {
                 let dropzoneVisibility =
@@ -212,8 +219,13 @@ type LoreCluster() =
                         
                 div {
                     attr.``class`` cardClassName
-                    attr.style rotation
-                    
+
+                    if position = ClusterPosition.Primary && card <> Card.empty then
+                        attr.style $"{rotation}cursor: grab;"
+                        on.mousedown (fun e -> this.OnPrimaryMouseDown e)
+                    else
+                        attr.style rotation
+
                     if card <> Card.empty then
                         comp<LoreBuilder.Components.Card> {
                             "Data" => card
