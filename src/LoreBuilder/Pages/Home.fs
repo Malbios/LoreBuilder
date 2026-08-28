@@ -1,5 +1,6 @@
 namespace LoreBuilder.Pages
 
+open System
 open System.Collections.Generic
 open Bolero
 open Bolero.Html
@@ -9,103 +10,155 @@ open LoreBuilder.Model
 open Microsoft.AspNetCore.Components
 open Microsoft.AspNetCore.Components.Web
 open Microsoft.Extensions.Logging
+open Microsoft.JSInterop
+open Plk.Blazor.DragDrop
+
+// Shape returned by wwwroot/js/canvas.js's toContentRelative - Blazor's JS interop uses
+// camelCase JSON by default, so this maps back from the JS object's lowercase x/y.
+type private JsPoint = { X: float; Y: float }
 
 type private HomeModel = {
-    GridPositions: HashSet<GridPosition>
     IsDragging: bool
     IsPanelOpen: bool
-    // The grid position currently being freely repositioned by the user (if any), and the
-    // mouse/offset it started from - used to compute the live offset on every mousemove.
-    DraggingCluster: GridPosition option
+    // The cluster currently being freely repositioned by the user (if any), and the
+    // mouse/position it started from - used to compute the live position on every mousemove.
+    DraggingClusterId: Guid option
     DragStartMouseX: float
     DragStartMouseY: float
-    DragStartOffsetX: float
-    DragStartOffsetY: float
+    DragStartX: float
+    DragStartY: float
 }
 
 type Home() =
     inherit Component()
 
     let mutable model = {
-        GridPositions = HashSet<GridPosition>([ GridPosition.origin ])
         IsDragging = false
         IsPanelOpen = false
-        DraggingCluster = None
+        DraggingClusterId = None
         DragStartMouseX = 0.0
         DragStartMouseY = 0.0
-        DragStartOffsetX = 0.0
-        DragStartOffsetY = 0.0
+        DragStartX = 0.0
+        DragStartY = 0.0
     }
 
-    // The pixel size of one grid cell, and how much headroom (in cells) the canvas starts with
-    // before the origin cluster - enough that it's visible without scrolling on first load, and
-    // growth by one ring in any direction stays on-screen too. Growing further than that in a
-    // single direction will need manual scrolling - see ISSUES.md / the Home page's kanban card.
-    let cellSize = 550
-    let offset = cellSize
+    // The pixel footprint of one cluster (used both for cell sizing and as the simple
+    // axis-aligned overlap footprint below) and the headroom the canvas starts with before the
+    // first cluster, so it's visible without scrolling on first load.
+    let cellSize = 550.0
+    let startPosition = (cellSize, cellSize)
 
-    // Freeform pixel offset a cluster has been dragged to, on top of its natural grid position.
-    // Absent entry means "still at its natural grid position." Kept outside the HomeModel record
-    // (like LoreCluster's own `cards`/`cardUiStates`) since it's mutated on every mousemove
-    // while dragging - reconstructing the whole record that often would be wasteful.
-    let clusterOffsets = Dictionary<GridPosition, float * float>()
+    // Every known cluster's absolute pixel position, keyed by a stable id rather than a grid
+    // cell - dragging and drop-anywhere both produce arbitrary free-form coordinates. Kept
+    // outside the HomeModel record (like LoreCluster's own `cards`/`cardUiStates`) since it's
+    // mutated on every mousemove while dragging.
+    let clusterPositions = Dictionary<Guid, float * float>()
 
-    let offsetFor position =
-        match clusterOffsets.TryGetValue position with
-        | true, value -> value
-        | false, _ -> (0.0, 0.0)
+    // Seeds a newly drop-anywhere-created cluster's primary card, read once by LoreCluster at
+    // its own initialization (LoreCluster.InitialPrimaryCard).
+    let initialCards = Dictionary<Guid, Card>()
+
+    do clusterPositions[Guid.NewGuid()] <- startPosition
+
+    let overlaps (x1, y1) (x2, y2) =
+        abs (x1 - x2) < cellSize && abs (y1 - y2) < cellSize
+
+    let wouldOverlapAny (excludeId: Guid option) candidate =
+        clusterPositions
+        |> Seq.exists(fun pair -> Some pair.Key <> excludeId && overlaps candidate pair.Value)
+
+    // Bound to .canvas-area (the scrollable container) so canvas.js can convert a drop's
+    // viewport-relative coordinates into coordinates relative to that container's own content.
+    let canvasRef = HtmlRef()
 
     override _.CssScope = CssScopes.LoreBuilder
 
     [<Inject>]
     member val Logger: ILogger<Home> = Unchecked.defaultof<_> with get, set
 
+    [<Inject>]
+    member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
+
     member this.Cards = Utils.allCards
 
     member this.TriggerReRender() = this.StateHasChanged()
 
-    member this.OnClusterStarted(position: GridPosition) =
+    member this.OnClusterStarted(id: Guid) =
 
-        let mutable addedAny = false
+        match clusterPositions.TryGetValue id with
+        | false, _ -> ()
+        | true, (x, y) ->
+            let candidates = [ (x - cellSize, y); (x + cellSize, y); (x, y - cellSize); (x, y + cellSize) ]
+            let mutable addedAny = false
 
-        for neighbor in GridPosition.neighbors position do
-            if model.GridPositions.Add neighbor then
-                addedAny <- true
+            for candidate in candidates do
+                if not (wouldOverlapAny None candidate) then
+                    clusterPositions[Guid.NewGuid()] <- candidate
+                    addedAny <- true
 
-        if addedAny then this.TriggerReRender()
+            if addedAny then this.TriggerReRender()
 
-    member this.StartClusterDrag (position: GridPosition) (e: MouseEventArgs) =
+    member this.StartClusterDrag (id: Guid) (e: MouseEventArgs) =
 
-        let currentOffsetX, currentOffsetY = offsetFor position
+        match clusterPositions.TryGetValue id with
+        | false, _ -> ()
+        | true, (x, y) ->
+            model <- {
+                model with
+                    DraggingClusterId = Some id
+                    DragStartMouseX = e.ClientX
+                    DragStartMouseY = e.ClientY
+                    DragStartX = x
+                    DragStartY = y
+            }
 
-        model <- {
-            model with
-                DraggingCluster = Some position
-                DragStartMouseX = e.ClientX
-                DragStartMouseY = e.ClientY
-                DragStartOffsetX = currentOffsetX
-                DragStartOffsetY = currentOffsetY
-        }
-
-        this.TriggerReRender()
+            this.TriggerReRender()
 
     member this.UpdateClusterDrag (e: MouseEventArgs) =
 
-        match model.DraggingCluster with
+        match model.DraggingClusterId with
         | None -> ()
-        | Some position ->
+        | Some id ->
             let deltaX = e.ClientX - model.DragStartMouseX
             let deltaY = e.ClientY - model.DragStartMouseY
+            let candidate = (model.DragStartX + deltaX, model.DragStartY + deltaY)
 
-            clusterOffsets[position] <- (model.DragStartOffsetX + deltaX, model.DragStartOffsetY + deltaY)
-
-            this.TriggerReRender()
+            // Overlapping the target simply keeps the cluster at its last valid position for
+            // this tick rather than any push/slide resolution - the next mousemove tries again.
+            if not (wouldOverlapAny (Some id) candidate) then
+                clusterPositions[id] <- candidate
+                this.TriggerReRender()
 
     member this.EndClusterDrag() =
 
-        if model.DraggingCluster.IsSome then
-            model <- { model with DraggingCluster = None }
+        if model.DraggingClusterId.IsSome then
+            model <- { model with DraggingClusterId = None }
             this.TriggerReRender()
+
+    // Drop-anywhere: a card dropped onto empty canvas space (i.e. not caught by any existing
+    // cluster's own dropzone, which sits above this one) starts a brand new, unconnected
+    // cluster right where it landed.
+    member this.OnCanvasDrop (card: Card, clientX: float, clientY: float) =
+
+        match canvasRef.Value with
+        | None -> ()
+        | Some element ->
+            task {
+                let! point =
+                    this.JSRuntime
+                        .InvokeAsync<JsPoint>("loreBuilderCanvas.toContentRelative", element, clientX, clientY)
+                        .AsTask()
+
+                let candidate = (point.X, point.Y)
+
+                if not (wouldOverlapAny None candidate) then
+                    let id = Guid.NewGuid()
+                    clusterPositions[id] <- candidate
+                    initialCards[id] <- card
+                    this.OnClusterStarted id
+                    this.TriggerReRender()
+            }
+            |> ignore
 
     override this.Render() =
 
@@ -160,21 +213,37 @@ type Home() =
 
             div {
                 attr.``class`` "canvas-area"
+                canvasRef
 
-                for position in model.GridPositions do
-                    let offsetX, offsetY = offsetFor position
+                let pointerEventsClass = if model.IsDragging then " auto-pointer" else " no-pointer"
+
+                div {
+                    attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
+
+                    comp<Dropzone<Card>> {
+                        "Items" => List<Card>()
+                        "Accepts" => Func<Card, Card, bool>(fun _ _ -> true)
+                        "OnItemDropAt" => Action<Card, double, double>(fun card x y -> this.OnCanvasDrop(card, x, y))
+                    }
+                }
+
+                for pair in clusterPositions do
+                    let id = pair.Key
+                    let x, y = pair.Value
 
                     div {
-                        attr.key position
+                        attr.key id
                         attr.``class`` "canvas-cell"
-
-                        attr.style
-                            $"left: {offset + position.X * cellSize + int offsetX}px; top: {offset + position.Y * cellSize + int offsetY}px; width: {cellSize}px; height: {cellSize}px;"
+                        attr.style $"left: {int x}px; top: {int y}px; width: {cellSize}px; height: {cellSize}px;"
 
                         comp<LoreCluster> {
                             "DropzonesAreActive" => model.IsDragging
-                            "OnClusterStarted" => fun () -> this.OnClusterStarted position
-                            "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag position e
+                            "InitialPrimaryCard" =>
+                                (match initialCards.TryGetValue id with
+                                 | true, card -> Some card
+                                 | false, _ -> None)
+                            "OnClusterStarted" => fun () -> this.OnClusterStarted id
+                            "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
                         }
                     }
             }

@@ -50,9 +50,21 @@ type LoreCluster() =
     
     [<Parameter>]
     member val DropzonesAreActive = false with get, set
-    
+
     [<Parameter>]
     member val Lore = "" with get, set
+
+    // Seeds the primary slot at creation time only (read once in OnInitialized) - used by
+    // Pages/Home.fs when a card is dropped directly onto empty canvas space and a brand new
+    // cluster is created there already holding that card, rather than starting empty and
+    // waiting for a drop into its primary dropzone.
+    [<Parameter>]
+    member val InitialPrimaryCard: Card option = None with get, set
+
+    override this.OnInitialized() =
+        match this.InitialPrimaryCard with
+        | Some card -> cards[ClusterPosition.Primary] <- card
+        | None -> ()
     
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
