@@ -170,7 +170,11 @@ module CardHelpers =
             
             on.click rotate
             on.stopPropagation "click" true
-            
+
+            // Without this, a mousedown starting here would bubble up to LoreCluster's
+            // whole-cluster drag handler before this element's own click ever fires.
+            on.stopPropagation "mousedown" true
+
             i { attr.``class`` $"fa-solid {icon}" }
         }
 

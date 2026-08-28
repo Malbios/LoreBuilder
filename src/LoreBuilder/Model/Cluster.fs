@@ -51,22 +51,3 @@ module ClusterPosition =
     let toString position =
 
         (Union.toString position).ToLower()
-
-// A cell in the growing grid of lore clusters on the Home page - unrelated to ClusterPosition,
-// which is about the 9 slots inside a single cluster.
-type GridPosition = {
-    X: int
-    Y: int
-}
-
-module GridPosition =
-
-    let origin = { X = 0; Y = 0 }
-
-    let left position = { position with X = position.X - 1 }
-    let right position = { position with X = position.X + 1 }
-    let up position = { position with Y = position.Y - 1 }
-    let down position = { position with Y = position.Y + 1 }
-
-    let neighbors position =
-        [ left position; right position; up position; down position ]
