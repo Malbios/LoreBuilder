@@ -22,15 +22,22 @@ type ClientApplication() =
         let hoverTestDispatch message =
             dispatch (Application.Message.HoverTestMsg message)
         
+        // Every other page is a conventional, document-style page that benefits from this
+        // breathing room - Home is a full-viewport app canvas (height: 100vh, its own
+        // activity-bar/sidebar/scrolling) that's specifically designed to fill the viewport
+        // edge-to-edge, so this margin would otherwise push it a few pixels past the actual
+        // viewport height, forcing an unwanted outer page scroll just to reach its own scrollbar.
+        let pageWrapperStyle = if model.Page = Page.Root then "" else "margin: 1rem;"
+
         div {
             attr.``class`` (Union.toString (currentTheme model))
-            
+
             concat {
                 comp<RadzenComponents>
-        
+
                 div {
-                    attr.style "margin: 1rem;"
-                    
+                    attr.style pageWrapperStyle
+
                     cond model.Page
                     <| function
                         | Page.Root -> comp<Pages.Home> { attr.empty() }

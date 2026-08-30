@@ -1,3 +1,10 @@
 * {
     box-sizing: border-box;
 }
+
+/* Without this, the browser's default body margin (~8px) adds to .home-layout's 100vh height,
+   making the page a few pixels taller than the viewport - forcing a page-level scroll just to
+   reach .canvas-area's own scrollbar at the bottom. */
+body {
+    margin: 0;
+}
