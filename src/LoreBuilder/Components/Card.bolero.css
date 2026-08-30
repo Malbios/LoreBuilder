@@ -228,16 +228,32 @@
     flex-direction: row;
 }
 
+/* Exactly co-extensive with .card-root (which matches .cluster-interior's own size/position -
+   see LoreCluster.bolero.css's .cluster-interior comment) so rotating it uses the same center as
+   .cluster-interior's own rotation - a counter-rotation here exactly cancels that ancestor
+   rotation for the arrows specifically, without affecting .flippable-card-container (a sibling,
+   not a descendant of this wrapper) or anything else in the card. */
+.arrow-counter-rotate {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    /* Matches .cluster-interior's own transition, so the counter-rotation eases in lockstep with
+       it instead of snapping into place after the cluster's own animation finishes. */
+    transition: transform 0.3s ease;
+}
+
 .arrow {
     position: absolute;
     z-index: 2;
-    
+    pointer-events: auto;
+
     width: 30px;
     height: 30px;
     padding: 4px;
     border-radius: 50%;
     cursor: pointer;
-    
+
     transition: color 0.6s ease, opacity 0.6s ease;
 }
 

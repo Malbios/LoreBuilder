@@ -328,6 +328,13 @@ type Card() =
     [<Parameter>]
     member val Rotation = 0 with get, set
 
+    // Non-zero only for LoreCluster's whole-cluster-rotate mode (the primary card once it has
+    // inner cards) - applied to the arrows' own wrapper (not the card face) to cancel out
+    // .cluster-interior's rotation just for them, so they stay put at the same screen position
+    // across repeated clicks instead of ending up wherever the last rotation carried them.
+    [<Parameter>]
+    member val CounterRotation = 0 with get, set
+
     [<Parameter>]
     member val OnRotationChanged: int -> unit = ignore with get, set
 
@@ -532,8 +539,13 @@ type Card() =
             let rotateClockwise (_: MouseEventArgs) =
                 this.Rotate RotationDirection.Clockwise
 
-            CardHelpers.arrow "arrow-left" (this.ArrowsVisibility ()) controlColor rotateCounterClockwise "fa-rotate-left"
-            CardHelpers.arrow "arrow-right" (this.ArrowsVisibility ()) controlColor rotateClockwise "fa-rotate-right"
+            div {
+                attr.``class`` "arrow-counter-rotate"
+                attr.style $"transform: rotate({this.CounterRotation}deg);"
+
+                CardHelpers.arrow "arrow-left" (this.ArrowsVisibility ()) controlColor rotateCounterClockwise "fa-rotate-left"
+                CardHelpers.arrow "arrow-right" (this.ArrowsVisibility ()) controlColor rotateClockwise "fa-rotate-right"
+            }
 
             // Tints the whole card red on hover when it's deletable in delete mode - pointer
             // events pass straight through (see CSS) so it never blocks the click beneath it.

@@ -486,6 +486,15 @@ type LoreCluster() =
                             "Size" => 270
                             "CurrentSide" => cardUiStates[position].CurrentSide
                             "Rotation" => cardUiStates[position].Rotation
+                            // Cancels .cluster-interior's own rotation just for the primary's
+                            // arrows once they're spinning the whole cluster, so they stay put on
+                            // screen across repeated clicks instead of ending up wherever the
+                            // last rotation carried them (see Card.fs's CounterRotation doc).
+                            "CounterRotation" =>
+                                (if position = ClusterPosition.Primary && not noInnerCards then
+                                     -this.ClusterRotation
+                                 else
+                                     0)
                             "CanBeRotated" => canBeRotated
                             // Removal keeps the "nothing depends on it" rule - an outer card is
                             // always free to remove, but an inner or primary card can't be pulled
