@@ -1,8 +1,11 @@
+/* Growth past this fixed inset:0 box (to enclose an active Complex cue's real content instead
+   of letting it overflow past the card's own background/border) is applied per-instance as an
+   inline bottom/top/left/right style computed in Card.fs's Render() from a real measurement of
+   that cue's rendered height (see CardHelpers.growthEdge and wwwroot/js/card.js) - not a fixed
+   CSS class, since the right amount varies with the actual content. */
 .card {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    max-width: 270px;
+    position: absolute;
+    inset: 0;
     transform-style: preserve-3d;
     transition: transform 0.6s ease;
 
@@ -19,6 +22,11 @@
 }
 
 .flippable-card-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 270px;
+
     perspective: 1000px;
     transition: transform 0.3s ease;
 }
@@ -26,10 +34,10 @@
 .primary-side,
 .secondary-side {
     position: absolute;
-    
+
     width: 100%;
     height: 100%;
-    
+
     backface-visibility: hidden;
     border-radius: 20px;
 
@@ -37,7 +45,23 @@
     justify-content: center;
 }
 
-.primary-side {
+.secondary-side {
+    transform: rotateY(180deg);
+}
+
+/* The fixed-size "art" (background + CardBadge), kept separate from .card
+   itself so a grown .card (see .grow-*) doesn't stretch or off-center it. */
+.card-art {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: 0;
+    left: 0;
+
+    border-radius: 20px;
+}
+
+.primary-side .card-art {
     background-image: conic-gradient(from 45deg,
         /* Left */ rgba(0, 0, 0, 0.2) 0deg 90deg,
         /* Top */ rgba(255, 255, 255, 0.1) 90deg 180deg,
@@ -46,8 +70,38 @@
     );
 }
 
-.secondary-side {
-    transform: rotateY(180deg);
+/* Anchors the art square to the side opposite the growth direction, so it
+   stays flush against the un-grown edges of .card - and squares off the two
+   corners that would otherwise land mid-edge instead of at an actual corner
+   of the grown .card. */
+.card-art-anchor-top {
+    top: 0;
+    left: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.card-art-anchor-bottom {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.card-art-anchor-left {
+    left: 0;
+    top: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.card-art-anchor-right {
+    left: auto;
+    right: 0;
+    top: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .simple-cue,
@@ -117,18 +171,26 @@
     margin-right: 5px;
 }
 
+/* height is content-driven (see wwwroot/js/card.js's measurement of this box's real
+   offsetHeight) - min-height 50px is this project's original reserved size, and the baseline
+   Card.fs's growthPx computation subtracts from the measured height, so the two must stay in
+   sync. */
 .complex-cue {
     width: 270px;
-    height: 50px;
+    height: auto;
+    min-height: 50px;
 }
 
 .complex-bottom-edge {
     bottom: 0;
 }
 
+/* left/right/top here are only the one-frame default shown before the first real measurement
+   lands (derived from the same formula Card.fs uses at runtime, with the 50px min-height as H) -
+   Card.fs's inline style overrides them as soon as CardHelpers.growthEdge's measurement completes. */
 .complex-left-edge {
-    left: -107px;
-    top: 109px;
+    left: -110px;
+    top: 110px;
     transform: rotate(90deg);
 }
 
@@ -138,13 +200,14 @@
 }
 
 .complex-right-edge {
-    right: -107px;
-    top: 109px;
+    right: -110px;
+    top: 110px;
     transform: rotate(-90deg);
 }
 
 .cue-header {
     font-size: small;
+    font-weight: 900;
     opacity: 0.5;
 }
 
@@ -156,6 +219,7 @@
 
 .cue-text {
     font-size: 0.8rem;
+    font-weight: 900;
 }
 
 .cue-expansions {
@@ -187,7 +251,26 @@
     right: 5px;
 }
 
-.remove-button {
-    bottom: 5px;
-    left: 5px;
+.delete-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    pointer-events: none;
+    background-color: rgba(217, 45, 32, 0.35);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.deletable {
+    cursor: pointer;
+}
+
+.deletable:hover .delete-overlay {
+    opacity: 1;
+}
+
+.delete-mode-inert {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
