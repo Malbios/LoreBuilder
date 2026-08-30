@@ -18,18 +18,28 @@
 }
 
 .home-layout {
-    display: flex;
+    position: relative;
     height: 100vh;
     width: 100%;
 }
 
+/* Floats on top of .canvas-area (which now fills the whole page) rather than pushing it into a
+   smaller flex-allocated space - needs its own opaque background/shadow since it's no longer
+   sitting against the page's plain background. */
 .activity-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+
     display: flex;
     flex-direction: column;
     align-items: center;
-    flex-shrink: 0;
     width: 48px;
     padding-top: 0.5rem;
+
+    background-color: white;
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
 }
 
 .activity-bar-icon {
@@ -50,24 +60,63 @@
     background-color: rgba(128, 128, 128, 0.15);
 }
 
+/* Floats on top of .canvas-area, immediately right of .activity-bar - same reasoning as
+   .activity-bar's own comment above. The open/closed width animation (set inline in Home.fs)
+   works the same regardless of position:absolute vs. its old flex placement. */
+/* width can't be transitioned to/from an unset (content-sized) value - there's no fixed number
+   for the browser to interpolate to. A single-column CSS Grid track can be animated instead
+   (0fr <-> 1fr both being concrete, interpolatable values), and 1fr in a single-track grid
+   naturally sizes to its content's own width - so the panel still opens/closes smoothly without
+   ever hardcoding a pixel width. */
 .side-panel {
-    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    padding-left: 48px;
+    height: 100%;
+    z-index: 1;
+
+    display: grid;
+    grid-template-columns: 0fr;
+    transition: grid-template-columns 0.2s ease;
+    /* The 0fr<->1fr track shrink only stops the *item's own* box from growing past the track -
+       it doesn't clip anything. Without this, the fixed-size cards inside .side-panel-content
+       (which don't shrink) paint straight past .side-panel's edge as the track animates down,
+       showing a sliver of card art during (and, depending on how padding-vs-0-width resolves,
+       potentially even after) the collapse. */
     overflow: hidden;
-    transition: width 0.2s ease;
+
+    background-color: white;
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
 }
 
 .side-panel-content {
-    width: 280px;
+    /* Grid items default to min-width:auto, which can floor their track's shrinking at the
+       content's own minimum size instead of letting it collapse all the way to 0. min-width:0
+       only cancels that content-driven floor though - the item's own padding/border still
+       floors the track's minimum regardless (a box can never render smaller than its own
+       padding+border), so this element itself must stay padding-free. The equivalent visual
+       padding lives on .side-panel-content .card-stack below instead. */
+    min-width: 0;
     height: 100%;
-    padding: 0.5rem;
-    box-sizing: border-box;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
+.side-panel-content .card-stack {
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+/* Fills the entire .home-layout edge-to-edge - .activity-bar/.side-panel float on top of it
+   (see their own z-index/position) rather than sharing a flex row with it. */
 .canvas-area {
-    position: relative;
-    flex: 1;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
     overflow: auto;
+
+    border: 1px solid #999;
+    box-sizing: border-box;
 }
 
 .canvas-cell {

@@ -233,7 +233,7 @@ type Home() =
 
             div {
                 attr.``class`` "side-panel"
-                attr.style (if model.IsPanelOpen then "width: 280px;" else "width: 0;")
+                attr.style (if model.IsPanelOpen then "grid-template-columns: 1fr;" else "")
 
                 div {
                     attr.``class`` "side-panel-content"
