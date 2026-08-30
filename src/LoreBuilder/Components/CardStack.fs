@@ -19,7 +19,7 @@ type CardStack() =
     member val Size: int = 0 with get, set
     
     [<Parameter>]
-    member val OnDragStart: unit -> unit = ignore with get, set
+    member val OnDragStart: Card -> unit = ignore with get, set
     
     [<Parameter>]
     member val OnDragEnd: unit -> unit = ignore with get, set
@@ -36,7 +36,7 @@ type CardStack() =
         comp<Dropzone<Card>> {
             "Items" => cardsForDropzone
             "Accepts" => Func<Card, Card, bool>(fun _ _ -> false)
-            "DragStart" => Action<Card>(fun _ -> this.OnDragStart())
+            "DragStart" => Action<Card>(fun card -> this.OnDragStart card)
             "DragEnd" => Action<Card>(fun _ -> this.OnDragEnd())
             
             attr.fragmentWith "ChildContent" (fun (card: Card) ->

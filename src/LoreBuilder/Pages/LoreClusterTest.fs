@@ -55,7 +55,7 @@ type LoreClusterTest() =
                         attr.key (List.head cards).Type
                         "Size" => 110
                         "Cards" => cards
-                        "OnDragStart" => fun () ->
+                        "OnDragStart" => fun (_: LoreBuilder.Model.Card) ->
                             model <- { model with IsDragging = true }
                             this.TriggerReRender()
                         "OnDragEnd" => fun () ->

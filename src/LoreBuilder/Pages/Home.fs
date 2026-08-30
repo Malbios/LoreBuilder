@@ -15,7 +15,11 @@ open Plk.Blazor.DragDrop
 
 
 type private HomeModel = {
-    IsDragging: bool
+    // The card currently being dragged from the sidebar (if any) - None means no drag is in
+    // progress. Carries the actual card (not just a bool) so LoreCluster can tell which of its
+    // dropzones would actually accept it, instead of showing every structurally-open dropzone as
+    // active regardless of card type.
+    DraggedCard: Card option
     IsPanelOpen: bool
     // While true, clicking a removable card deletes it instead of flipping it (see
     // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button.
@@ -33,7 +37,7 @@ type Home() =
     inherit Component()
 
     let mutable model = {
-        IsDragging = false
+        DraggedCard = None
         IsPanelOpen = true
         IsDeleteMode = false
         DraggingClusterId = None
@@ -242,11 +246,11 @@ type Home() =
                                 attr.key (List.head cards).Type
                                 "Size" => 110
                                 "Cards" => cards
-                                "OnDragStart" => fun () ->
-                                    model <- { model with IsDragging = true }
+                                "OnDragStart" => fun (card: Card) ->
+                                    model <- { model with DraggedCard = Some card }
                                     this.TriggerReRender()
                                 "OnDragEnd" => fun () ->
-                                    model <- { model with IsDragging = false }
+                                    model <- { model with DraggedCard = None }
                                     this.TriggerReRender()
                             }
                     }
@@ -257,7 +261,7 @@ type Home() =
                 attr.``class`` "canvas-area"
                 canvasRef
 
-                let pointerEventsClass = if model.IsDragging then " auto-pointer" else " no-pointer"
+                let pointerEventsClass = if model.DraggedCard.IsSome then " auto-pointer" else " no-pointer"
 
                 // Sized to the actual extent of the known clusters (plus one cellSize of margin
                 // on every side, enough to catch a drop-anywhere placed just outside them) rather
@@ -298,7 +302,8 @@ type Home() =
                         attr.style $"left: {int x}px; top: {int y}px; width: {cellSize}px; height: {cellSize}px;"
 
                         comp<LoreCluster> {
-                            "DropzonesAreActive" => model.IsDragging
+                            "DropzonesAreActive" => model.DraggedCard.IsSome
+                            "DraggedCard" => model.DraggedCard
                             "IsDeleteMode" => model.IsDeleteMode
                             "InitialPrimaryCard" =>
                                 (match initialCards.TryGetValue id with

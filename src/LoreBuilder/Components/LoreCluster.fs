@@ -52,6 +52,15 @@ type LoreCluster() =
     [<Parameter>]
     member val DropzonesAreActive = false with get, set
 
+    // The card currently being dragged from the sidebar (if any) - used alongside
+    // DropzonesAreActive so a dropzone only shows/behaves as active when it would actually accept
+    // this specific card (reusing acceptDrop below), not just whenever a drag of any kind is
+    // happening. None (e.g. the dev-only LoreClusterTest.fs page, which doesn't wire this up)
+    // falls back to the old undiscriminating behavior - every structurally-open dropzone is shown
+    // as active.
+    [<Parameter>]
+    member val DraggedCard: Card option = None with get, set
+
     // Forwarded to every card - see Card.IsDeleteMode's doc comment.
     [<Parameter>]
     member val IsDeleteMode = false with get, set
@@ -157,6 +166,10 @@ type LoreCluster() =
                 | Some (Cue.Complex complexCue) -> complexCue.Expansions
                 | _ -> None
 
+        // Primary intentionally stays droppable/replaceable even once filled (dropping a new
+        // primary card swaps it out) - Inner/Outer slots don't support replace-by-drop, so once
+        // filled their dropzone must stop showing/accepting drops entirely (the card has to be
+        // removed, e.g. via delete mode, before a new one can go there).
         let showDropzone position =
             match position with
             | ClusterPosition.Primary -> noInnerCards
@@ -164,13 +177,13 @@ type LoreCluster() =
             | ClusterPosition.Inner_Bottom
             | ClusterPosition.Inner_Left
             | ClusterPosition.Inner_Top
-            | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary
+            | ClusterPosition.Inner_Right -> hasCard ClusterPosition.Primary && not (hasCard position)
 
             | ClusterPosition.Outer_Bottom
             | ClusterPosition.Outer_Left
             | ClusterPosition.Outer_Top
             | ClusterPosition.Outer_Right ->
-                hasCard (innerPositionFor position) && (expectedOuterExpansion position).IsSome
+                hasCard (innerPositionFor position) && (expectedOuterExpansion position).IsSome && not (hasCard position)
             
         let cardAndDropzone position =
             let card = cards[position]
@@ -181,17 +194,18 @@ type LoreCluster() =
             let acceptDrop (card: Card) _ = // droppedCard, target (target could be null)
                 match position with
                 | ClusterPosition.Primary -> true
-                
+
                 | ClusterPosition.Inner_Bottom
                 | ClusterPosition.Inner_Left
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
-                    card.Type = cards[ClusterPosition.Primary].Type
-                    
+                    not (hasCard position) && card.Type = cards[ClusterPosition.Primary].Type
+
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
                 | ClusterPosition.Outer_Right ->
+                    not (hasCard position) &&
                     match expectedOuterExpansion position with
                     | None -> false
                     | Some expansion -> Logical.accepts expansion card.Type
@@ -208,11 +222,20 @@ type LoreCluster() =
 
             let onRemove () = replaceCard Card.empty
             
+            // Whether this position's dropzone would actually accept the card currently being
+            // dragged (reusing acceptDrop, rather than duplicating its type-matching logic) - the
+            // second argument mirrors "Accepts" below, which never uses it either. Falls back to
+            // true when DraggedCard isn't wired up (see DraggedCard's own doc comment).
+            let dropzoneAccepts =
+                this.DraggedCard
+                |> Option.map (fun draggedCard -> acceptDrop draggedCard card)
+                |> Option.defaultValue true
+
             let blinkerClass =
-                if this.DropzonesAreActive then " blink_me" else ""
-            
+                if this.DropzonesAreActive && dropzoneAccepts then " blink_me" else ""
+
             let pointerEventsClass =
-                if this.DropzonesAreActive then " auto-pointer" else " no-pointer"
+                if this.DropzonesAreActive && dropzoneAccepts then " auto-pointer" else " no-pointer"
                 
             let onRotationChanged newRotation =
                 cardUiStates[position] <- { cardUiStates[position] with Rotation = newRotation }
