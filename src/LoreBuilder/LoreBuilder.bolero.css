@@ -119,6 +119,13 @@
     box-sizing: border-box;
 }
 
+/* Wraps the background dropzone and every canvas-cell so the zoom level (Home.fs's Zoom) scales
+   them together as one unit - everything inside stays in the same canvas-space pixel coordinates
+   regardless of zoom; only this wrapper's own transform changes how that's painted. */
+.canvas-content {
+    position: relative;
+}
+
 .canvas-cell {
     position: absolute;
     z-index: 1;

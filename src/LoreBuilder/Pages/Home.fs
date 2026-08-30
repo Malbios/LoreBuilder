@@ -31,6 +31,16 @@ type private HomeModel = {
     DragStartMouseY: float
     DragStartX: float
     DragStartY: float
+    // The canvas's current zoom level (1.0 = 100%) - applied as a CSS transform:scale() on
+    // .canvas-content, so every other canvas-space calculation (cluster positions, drag deltas,
+    // drop-anywhere positioning) stays in one consistent, zoom-independent pixel space and only
+    // needs converting where it meets real screen pixels (see UpdateClusterDrag/OnCanvasDrop).
+    Zoom: float
+    // The screen point (and zoom level it was set at) a just-applied zoom change should keep
+    // visually anchored - set by ZoomBy, consumed by OnAfterRenderAsync once the DOM actually
+    // reflects the new Zoom's CSS transform (adjusting scroll position any earlier would get
+    // clamped to the stale, pre-zoom scrollable range).
+    PendingZoomAnchor: (float * float * float) option
 }
 
 type Home() =
@@ -45,7 +55,13 @@ type Home() =
         DragStartMouseY = 0.0
         DragStartX = 0.0
         DragStartY = 0.0
+        Zoom = 1.0
+        PendingZoomAnchor = None
     }
+
+    let minZoom = 0.25
+    let maxZoom = 2.0
+    let zoomStep = 0.1
 
     // Each cluster's reserved box size, and the point the empty canvas is centered on before
     // any cluster exists (used only as a fallback for sizing the background dropzone - see the
@@ -99,6 +115,11 @@ type Home() =
     // viewport-relative coordinates into coordinates relative to that container's own content.
     let canvasRef = HtmlRef()
 
+    // Held so JS can call back into this component (loreBuilderCanvas.registerWheelZoom) and
+    // disposed of properly when the component goes away - standard Blazor JS-interop hygiene for
+    // a reference JS itself holds onto.
+    let mutable wheelZoomDotNetRef: DotNetObjectReference<Home> option = None
+
     override _.CssScope = CssScopes.LoreBuilder
 
     [<Inject>]
@@ -147,8 +168,11 @@ type Home() =
         match model.DraggingClusterId with
         | None -> ()
         | Some id ->
-            let deltaX = e.ClientX - model.DragStartMouseX
-            let deltaY = e.ClientY - model.DragStartMouseY
+            // e.ClientX/Y deltas are screen pixels - divide by Zoom to get the equivalent
+            // canvas-space move (a screen-pixel drag covers less canvas-space distance when
+            // zoomed in, more when zoomed out).
+            let deltaX = (e.ClientX - model.DragStartMouseX) / model.Zoom
+            let deltaY = (e.ClientY - model.DragStartMouseY) / model.Zoom
             let candidate = (model.DragStartX + deltaX, model.DragStartY + deltaY)
 
             // Overlapping the target simply keeps the cluster at its last valid position for
@@ -162,6 +186,72 @@ type Home() =
         if model.DraggingClusterId.IsSome then
             model <- { model with DraggingClusterId = None }
             this.TriggerReRender()
+
+    // Changes Zoom by delta (clamped to [minZoom, maxZoom]), anchored so (clientX, clientY) -
+    // a screen point, from either a wheel event's cursor position or a zoom button's computed
+    // viewport-center - keeps pointing at the same canvas-space location once OnAfterRenderAsync
+    // applies the compensating scroll adjustment.
+    member this.ZoomBy (delta: float) (clientX: float) (clientY: float) =
+
+        let oldZoom = model.Zoom
+        let newZoom = System.Math.Clamp(oldZoom + delta, minZoom, maxZoom)
+
+        if newZoom <> oldZoom then
+            model <- { model with Zoom = newZoom; PendingZoomAnchor = Some(clientX, clientY, oldZoom) }
+            this.TriggerReRender()
+
+    // A zoom button click has no cursor position of its own to anchor on - use the canvas
+    // viewport's own center instead, so it zooms toward whatever's currently in view.
+    member this.ZoomButtonClicked(delta: float) =
+
+        match canvasRef.Value with
+        | None -> ()
+        | Some element ->
+            task {
+                let! center =
+                    this.JSRuntime.InvokeAsync<float[]>("loreBuilderCanvas.getCenter", element).AsTask()
+
+                this.ZoomBy delta center.[0] center.[1]
+            }
+            |> ignore
+
+    override this.OnAfterRenderAsync(firstRender: bool) =
+        task {
+            if firstRender then
+                match canvasRef.Value with
+                | Some element ->
+                    let dotNetRef = DotNetObjectReference.Create(this)
+                    wheelZoomDotNetRef <- Some dotNetRef
+
+                    do!
+                        this.JSRuntime
+                            .InvokeVoidAsync("loreBuilderCanvas.registerWheelZoom", element, dotNetRef)
+                            .AsTask()
+                | None -> ()
+
+            match model.PendingZoomAnchor, canvasRef.Value with
+            | Some(clientX, clientY, oldZoom), Some element ->
+                model <- { model with PendingZoomAnchor = None }
+
+                do!
+                    this.JSRuntime
+                        .InvokeVoidAsync("loreBuilderCanvas.zoomAt", element, clientX, clientY, oldZoom, model.Zoom)
+                        .AsTask()
+            | Some _, None -> model <- { model with PendingZoomAnchor = None }
+            | None, _ -> ()
+        }
+        :> System.Threading.Tasks.Task
+
+    // Called from JS (loreBuilderCanvas.registerWheelZoom) whenever a Ctrl+wheel event lands on
+    // the canvas - the actual preventDefault() happens synchronously in JS, since Blazor's own
+    // event dispatch is too slow to reliably beat the browser's native page-zoom handling.
+    [<JSInvokable>]
+    member this.OnCanvasWheelZoom(deltaY: float, clientX: float, clientY: float) =
+        this.ZoomBy (if deltaY < 0.0 then zoomStep else -zoomStep) clientX clientY
+
+    interface IDisposable with
+        member _.Dispose() =
+            wheelZoomDotNetRef |> Option.iter (fun r -> r.Dispose())
 
     // Drop-anywhere: a card dropped onto empty canvas space (i.e. not caught by any existing
     // cluster's own dropzone, which sits above this one) starts a brand new, unconnected
@@ -178,11 +268,16 @@ type Home() =
                             .InvokeAsync<float[]>("loreBuilderCanvas.toContentRelative", element, clientX, clientY)
                             .AsTask()
 
+                    // point is content-relative in screen (post-scale) pixels - divide by Zoom to
+                    // get the equivalent canvas-space position.
+                    let canvasX = point.[0] / model.Zoom
+                    let canvasY = point.[1] / model.Zoom
+
                     // clusterPositions holds each cluster's box top-left corner, but the drop
                     // point is where the card visually landed - center the new box on that
                     // point (half a cell size back in each direction) rather than anchoring its
                     // corner there, so the cluster actually appears where it was dropped.
-                    let candidate = (point.[0] - cellSize / 2.0, point.[1] - cellSize / 2.0)
+                    let candidate = (canvasX - cellSize / 2.0, canvasY - cellSize / 2.0)
 
                     if not (wouldOverlapAny None primaryOnlyFootprint candidate) then
                         let id = Guid.NewGuid()
@@ -229,6 +324,20 @@ type Home() =
 
                     i { attr.``class`` "fa-solid fa-trash" }
                 }
+
+                div {
+                    attr.``class`` "activity-bar-icon"
+                    on.click (fun _ -> this.ZoomButtonClicked zoomStep)
+
+                    i { attr.``class`` "fa-solid fa-magnifying-glass-plus" }
+                }
+
+                div {
+                    attr.``class`` "activity-bar-icon"
+                    on.click (fun _ -> this.ZoomButtonClicked -zoomStep)
+
+                    i { attr.``class`` "fa-solid fa-magnifying-glass-minus" }
+                }
             }
 
             div {
@@ -259,6 +368,10 @@ type Home() =
 
             div {
                 attr.``class`` "canvas-area"
+
+                // Ctrl+wheel zoom is wired up via a raw JS listener (loreBuilderCanvas.registerWheelZoom,
+                // registered in OnAfterRenderAsync) instead of Bolero's on.wheel/on.preventDefault -
+                // see OnCanvasWheelZoom's doc comment for why.
                 canvasRef
 
                 let pointerEventsClass = if model.DraggedCard.IsSome then " auto-pointer" else " no-pointer"
@@ -281,38 +394,43 @@ type Home() =
                         clusterPositions.Values |> Seq.map snd |> Seq.max
 
                 div {
-                    attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
-                    attr.style
-                        $"left: {minX - cellSize}px; top: {minY - cellSize}px; width: {maxX - minX + cellSize * 3.0}px; height: {maxY - minY + cellSize * 3.0}px;"
-
-                    comp<Dropzone<Card>> {
-                        "Items" => List<Card>()
-                        "Accepts" => Func<Card, Card, bool>(fun _ _ -> true)
-                        "OnItemDropAt" => Action<Card, double, double>(fun card x y -> this.OnCanvasDrop(card, x, y))
-                    }
-                }
-
-                for pair in clusterPositions do
-                    let id = pair.Key
-                    let x, y = pair.Value
+                    attr.``class`` "canvas-content"
+                    attr.style $"transform: scale({model.Zoom}); transform-origin: 0 0;"
 
                     div {
-                        attr.key id
-                        attr.``class`` "canvas-cell"
-                        attr.style $"left: {int x}px; top: {int y}px; width: {cellSize}px; height: {cellSize}px;"
+                        attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
+                        attr.style
+                            $"left: {minX - cellSize}px; top: {minY - cellSize}px; width: {maxX - minX + cellSize * 3.0}px; height: {maxY - minY + cellSize * 3.0}px;"
 
-                        comp<LoreCluster> {
-                            "DropzonesAreActive" => model.DraggedCard.IsSome
-                            "DraggedCard" => model.DraggedCard
-                            "IsDeleteMode" => model.IsDeleteMode
-                            "InitialPrimaryCard" =>
-                                (match initialCards.TryGetValue id with
-                                 | true, card -> Some card
-                                 | false, _ -> None)
-                            "OnClusterEmptied" => fun () -> this.OnClusterEmptied id
-                            "OnFootprintChanged" => fun (footprint: float) -> this.OnFootprintChanged id footprint
-                            "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
+                        comp<Dropzone<Card>> {
+                            "Items" => List<Card>()
+                            "Accepts" => Func<Card, Card, bool>(fun _ _ -> true)
+                            "OnItemDropAt" => Action<Card, double, double>(fun card x y -> this.OnCanvasDrop(card, x, y))
                         }
                     }
+
+                    for pair in clusterPositions do
+                        let id = pair.Key
+                        let x, y = pair.Value
+
+                        div {
+                            attr.key id
+                            attr.``class`` "canvas-cell"
+                            attr.style $"left: {int x}px; top: {int y}px; width: {cellSize}px; height: {cellSize}px;"
+
+                            comp<LoreCluster> {
+                                "DropzonesAreActive" => model.DraggedCard.IsSome
+                                "DraggedCard" => model.DraggedCard
+                                "IsDeleteMode" => model.IsDeleteMode
+                                "InitialPrimaryCard" =>
+                                    (match initialCards.TryGetValue id with
+                                     | true, card -> Some card
+                                     | false, _ -> None)
+                                "OnClusterEmptied" => fun () -> this.OnClusterEmptied id
+                                "OnFootprintChanged" => fun (footprint: float) -> this.OnFootprintChanged id footprint
+                                "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
+                            }
+                        }
+                }
             }
         }

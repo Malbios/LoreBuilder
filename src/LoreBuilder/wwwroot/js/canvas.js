@@ -11,5 +11,43 @@ window.loreBuilderCanvas = {
             clientX - rect.left + element.scrollLeft,
             clientY - rect.top + element.scrollTop
         ];
+    },
+
+    // Viewport-absolute center point of element, as [x, y] - used so a button-triggered zoom (no
+    // cursor position available) anchors on the same "zoom toward a screen point" logic as
+    // scroll-wheel zoom.
+    getCenter: function (element) {
+        const rect = element.getBoundingClientRect();
+        return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+    },
+
+    // Adjusts element's scroll position so the canvas-space point currently under
+    // (clientX, clientY) stays under it after zoom changes from oldZoom to newZoom - must only
+    // be called once the DOM already reflects newZoom's CSS transform (see Home.fs's
+    // OnAfterRenderAsync), otherwise the browser clamps the new scrollLeft/Top to the old
+    // (pre-zoom) scrollable range.
+    zoomAt: function (element, clientX, clientY, oldZoom, newZoom) {
+        const rect = element.getBoundingClientRect();
+        const cx = clientX - rect.left;
+        const cy = clientY - rect.top;
+        const contentX = cx + element.scrollLeft;
+        const contentY = cy + element.scrollTop;
+        const ratio = newZoom / oldZoom;
+        element.scrollLeft = contentX * ratio - cx;
+        element.scrollTop = contentY * ratio - cy;
+    },
+
+    // Registered directly (not through Bolero's on.wheel/on.preventDefault) because Blazor's own
+    // event dispatch round-trip is too slow to reliably beat the browser's native, synchronous
+    // Ctrl+wheel page-zoom handling - only a listener registered here, with {passive: false},
+    // calling preventDefault() synchronously before Blazor is even involved, actually stops it.
+    // Only the Ctrl case calls preventDefault, so plain wheel scrolling is left completely alone.
+    registerWheelZoom: function (element, dotNetHelper) {
+        element.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                dotNetHelper.invokeMethodAsync('OnCanvasWheelZoom', e.deltaY, e.clientX, e.clientY);
+            }
+        }, { passive: false });
     }
 };
