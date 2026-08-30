@@ -10,9 +10,14 @@
 
 .cluster-interior {
     position: relative;
-    
+
     width: 270px;
     height: 270px;
+
+    /* Matches .flippable-card-container's own rotate transition, so spinning the whole cluster
+       (via the primary's arrows once it has inner cards) animates the same way a lone card's
+       own rotation does. */
+    transition: transform 0.3s ease;
 }
 
 .primary-dropzone {
