@@ -13,6 +13,17 @@
     height: 100%;
 }
 
+/* The sidebar's card-preview dropzones (CardStack, inside Home.fs's .card-stack grid) should
+   hug the fixed-size square card they contain instead of stretching to their grid cell's full
+   width - unlike LoreCluster's own slot dropzones and the canvas background dropzone, both of
+   which intentionally rely on the 100%/100% rule above to fill their own explicitly-sized
+   wrappers. Scoped via a plain descendant selector (not Bolero's CSS isolation) since this
+   third-party library's own markup doesn't carry this app's component scope attribute. */
+.card-stack .plk-dd-dropzone {
+    width: fit-content;
+    height: fit-content;
+}
+
 /* drag drop styles */
 
 .plk-dd-spacing {
