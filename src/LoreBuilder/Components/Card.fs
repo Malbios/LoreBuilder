@@ -290,6 +290,10 @@ type Card() =
     // OnAfterRenderAsync, guarded so a re-render is triggered only when the value actually changes.
     member val private MeasuredCueHeight: float option = None with get, set
 
+    // The last growth amount reported via OnGrowthChanged - guards that callback the same way
+    // MeasuredCueHeight guards its own re-render, so it only fires on an actual change.
+    member val private PreviousGrowthPx: float option = None with get, set
+
     [<Parameter>]
     member val Data = Card.empty with get, set
     
@@ -329,6 +333,13 @@ type Card() =
 
     [<Parameter>]
     member val OnRemove: unit -> unit = ignore with get, set
+
+    // Fired (after render, whenever it actually changes) with how far this card's own box has
+    // grown past its base size in px (0 when not growing) - lets LoreCluster.fs push the next
+    // card in the same direction's chain out far enough to clear it, since a grown card's real
+    // visual size otherwise isn't reflected anywhere outside this component.
+    [<Parameter>]
+    member val OnGrowthChanged: float -> unit = ignore with get, set
 
     member private this.FlippedClass () =
 
@@ -373,6 +384,16 @@ type Card() =
     member private this.GrowthEdge() =
         CardHelpers.growthEdge (this.CurrentSideCues()) this.ActiveEdge this.Rotation
 
+    // How far .card needs to grow to enclose the active cue's real content, based on the last
+    // real measurement (see OnAfterRenderAsync) - 0 before the first measurement lands. Shared by
+    // Render() (the actual growth style) and OnAfterRenderAsync (reporting it via
+    // OnGrowthChanged) so the two can't drift apart (same precedent as
+    // LoreCluster.fs's ComputeMargin()).
+    member private this.CurrentGrowthPx() =
+        match this.GrowthEdge(), this.MeasuredCueHeight with
+        | Some _, Some height -> max 0.0 (height - 50.0)
+        | _ -> 0.0
+
     // StateHasChanged is protected and can't be called directly from within a lambda/task CE -
     // this member wrapper is the standard F#/Blazor workaround (same precedent as
     // LoreCluster.fs's NotifyStateChanged).
@@ -404,6 +425,16 @@ type Card() =
                 with ex ->
                     printfn $"Card cue measurement failed: {ex.Message}"
             | _ -> ()
+
+            // Growth can change either because a new measurement just landed above, or because
+            // GrowthEdge() itself changed (e.g. the card was rotated away from its growing cue)
+            // with no new measurement involved - checked unconditionally here so both cases are
+            // covered by the same guard.
+            let currentGrowthPx = this.CurrentGrowthPx()
+
+            if this.PreviousGrowthPx <> Some currentGrowthPx then
+                this.PreviousGrowthPx <- Some currentGrowthPx
+                this.OnGrowthChanged currentGrowthPx
         }
         :> System.Threading.Tasks.Task
 
@@ -414,15 +445,11 @@ type Card() =
 
         let growthEdge = this.GrowthEdge()
 
-        // How far .card needs to grow to enclose the active cue's real content, and, for
-        // Left/Right edges, where that cue itself needs to sit - both computed from the last
-        // real measurement (see OnAfterRenderAsync). Before the first measurement lands, growthPx
-        // is 0 (matching .card's un-grown base state) and the cue falls back to
-        // Card.bolero.css's static default position.
-        let growthPx =
-            match growthEdge, this.MeasuredCueHeight with
-            | Some _, Some height -> max 0.0 (height - 50.0)
-            | _ -> 0.0
+        // For Left/Right edges, where the cue itself needs to sit, computed from the last real
+        // measurement (see OnAfterRenderAsync). Before the first measurement lands, growthPx is 0
+        // (matching .card's un-grown base state) and the cue falls back to Card.bolero.css's
+        // static default position.
+        let growthPx = this.CurrentGrowthPx()
 
         let cardGrowthStyle =
             match growthEdge, this.MeasuredCueHeight with

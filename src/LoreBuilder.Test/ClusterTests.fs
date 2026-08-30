@@ -11,7 +11,7 @@ module ``Cluster Tests`` =
     type ``ClusterPosition fromIndex``() =
 
         [<Fact>]
-        let ``maps 0 through 8 to the 9 positions in order`` () =
+        let ``maps 0 through 12 to the 13 positions in order`` () =
             // Arrange
             let expected = [
                 ClusterPosition.Primary
@@ -23,18 +23,22 @@ module ``Cluster Tests`` =
                 ClusterPosition.Outer_Left
                 ClusterPosition.Outer_Top
                 ClusterPosition.Outer_Right
+                ClusterPosition.Outer2_Bottom
+                ClusterPosition.Outer2_Left
+                ClusterPosition.Outer2_Top
+                ClusterPosition.Outer2_Right
             ]
 
             // Act
-            let actual = [ 0..8 ] |> List.map ClusterPosition.fromIndex
+            let actual = [ 0..12 ] |> List.map ClusterPosition.fromIndex
 
             // Assert
             %actual.Should().Be(expected)
 
         [<Fact>]
-        let ``index outside 0-8 throws`` () =
+        let ``index outside 0-12 throws`` () =
             // Act
-            let act () = ClusterPosition.fromIndex 9 |> ignore
+            let act () = ClusterPosition.fromIndex 13 |> ignore
 
             // Assert
             %act.Should().Throw<exn, _>()

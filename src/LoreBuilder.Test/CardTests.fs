@@ -117,6 +117,34 @@ module ``Card Tests`` =
             %(Logical.accepts (Logical.All [ CardType.Event; CardType.Figure ]) CardType.Figure).Should().BeTrue()
             %(Logical.accepts (Logical.All [ CardType.Event; CardType.Figure ]) CardType.Location).Should().BeFalse()
 
+    type ``Logical slotTypes and acceptsAt``() =
+
+        [<Fact>]
+        let ``One only has a single slot at index 0`` () =
+            %(Logical.slotTypes 0 (Logical.One CardType.Event)).Should().Be(Some [ CardType.Event ])
+            %(Logical.slotTypes 1 (Logical.One CardType.Event)).Should().Be(None)
+
+        [<Fact>]
+        let ``Any only has a single slot at index 0, accepting every listed type`` () =
+            let any = Logical.Any [ CardType.Event; CardType.Figure ]
+
+            %(Logical.slotTypes 0 any).Should().Be(Some [ CardType.Event; CardType.Figure ])
+            %(Logical.slotTypes 1 any).Should().Be(None)
+            %(Logical.acceptsAt 0 any CardType.Figure).Should().BeTrue()
+
+        [<Fact>]
+        let ``All has one position-locked slot per list item`` () =
+            let all = Logical.All [ CardType.Event; CardType.Figure ]
+
+            %(Logical.slotTypes 0 all).Should().Be(Some [ CardType.Event ])
+            %(Logical.slotTypes 1 all).Should().Be(Some [ CardType.Figure ])
+            %(Logical.slotTypes 2 all).Should().Be(None)
+
+            %(Logical.acceptsAt 0 all CardType.Event).Should().BeTrue()
+            %(Logical.acceptsAt 0 all CardType.Figure).Should().BeFalse()
+            %(Logical.acceptsAt 1 all CardType.Figure).Should().BeTrue()
+            %(Logical.acceptsAt 1 all CardType.Event).Should().BeFalse()
+
     type ``CardHelpers activeCue``() =
 
         let cues = {

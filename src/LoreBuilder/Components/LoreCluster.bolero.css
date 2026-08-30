@@ -17,20 +17,20 @@
 
 .primary-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     width: 270px;
     height: 270px;
 }
 
 .primary {
     position: absolute;
-    z-index: 9;
+    z-index: 13;
     pointer-events: auto;
 }
 
 .inner_bottom-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     bottom: -58px;
     width: 270px;
     height: 58px;
@@ -38,14 +38,14 @@
 
 .inner_bottom {
     position: absolute;
-    z-index: 8;
+    z-index: 12;
     bottom: -58px;
     pointer-events: auto;
 }
 
 .inner_left-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     left: -58px;
     width: 58px;
     height: 270px;
@@ -53,14 +53,14 @@
 
 .inner_left {
     position: absolute;
-    z-index: 6;
+    z-index: 9;
     left: -58px;
     pointer-events: auto;
 }
 
 .inner_top-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     top: -58px;
     width: 270px;
     height: 58px;
@@ -68,14 +68,14 @@
 
 .inner_top {
     position: absolute;
-    z-index: 4;
+    z-index: 6;
     top: -58px;
     pointer-events: auto;
 }
 
 .inner_right-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     right: -58px;
     width: 58px;
     height: 270px;
@@ -83,14 +83,14 @@
 
 .inner_right {
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     right: -58px;
     pointer-events: auto;
 }
 
 .outer_bottom-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     bottom: -90px;
     width: 270px;
     height: 32px;
@@ -98,14 +98,14 @@
 
 .outer_bottom {
     position: absolute;
-    z-index: 7;
+    z-index: 11;
     bottom: -90px;
     pointer-events: auto;
 }
 
 .outer_left-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     left: -90px;
     width: 32px;
     height: 270px;
@@ -113,14 +113,14 @@
 
 .outer_left {
     position: absolute;
-    z-index: 5;
+    z-index: 8;
     left: -90px;
     pointer-events: auto;
 }
 
 .outer_top-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     top: -90px;
     width: 270px;
     height: 32px;
@@ -128,14 +128,14 @@
 
 .outer_top {
     position: absolute;
-    z-index: 3;
+    z-index: 5;
     top: -90px;
     pointer-events: auto;
 }
 
 .outer_right-dropzone {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     right: -90px;
     width: 32px;
     height: 270px;
@@ -143,8 +143,68 @@
 
 .outer_right {
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     right: -90px;
+    pointer-events: auto;
+}
+
+.outer2_bottom-dropzone {
+    position: absolute;
+    z-index: 20;
+    bottom: -122px;
+    width: 270px;
+    height: 32px;
+}
+
+.outer2_bottom {
+    position: absolute;
+    z-index: 10;
+    bottom: -122px;
+    pointer-events: auto;
+}
+
+.outer2_left-dropzone {
+    position: absolute;
+    z-index: 20;
+    left: -122px;
+    width: 32px;
+    height: 270px;
+}
+
+.outer2_left {
+    position: absolute;
+    z-index: 7;
+    left: -122px;
+    pointer-events: auto;
+}
+
+.outer2_top-dropzone {
+    position: absolute;
+    z-index: 20;
+    top: -122px;
+    width: 270px;
+    height: 32px;
+}
+
+.outer2_top {
+    position: absolute;
+    z-index: 4;
+    top: -122px;
+    pointer-events: auto;
+}
+
+.outer2_right-dropzone {
+    position: absolute;
+    z-index: 20;
+    right: -122px;
+    width: 32px;
+    height: 270px;
+}
+
+.outer2_right {
+    position: absolute;
+    z-index: 1;
+    right: -122px;
     pointer-events: auto;
 }
 

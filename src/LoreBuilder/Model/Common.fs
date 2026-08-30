@@ -30,6 +30,22 @@ module Logical =
         | Logical.Any expected
         | Logical.All expected -> List.contains value expected
 
+    // The card type(s) accepted at a given 0-based attachment-point index, or None if no
+    // attachment point exists there. All models one mandatory, position-locked slot per list
+    // item (index i only exists if the list has at least i+1 items, and only accepts that
+    // specific item's type) - unlike One/Any, which always describe a single slot (index 0)
+    // accepting any of their listed type(s), since "one of" / "any of" naturally means
+    // "satisfied by any single match", not several independent slots.
+    let slotTypes index logical =
+        match logical, index with
+        | Logical.One expected, 0 -> Some [ expected ]
+        | Logical.Any expected, 0 -> Some expected
+        | Logical.All items, i -> items |> List.tryItem i |> Option.map List.singleton
+        | _ -> None
+
+    let acceptsAt index logical value =
+        slotTypes index logical |> Option.exists (List.contains value)
+
 [<RequireQualifiedAccess>]
 type RotationDirection =
     | Clockwise
