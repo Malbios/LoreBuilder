@@ -13,13 +13,13 @@ open Microsoft.Extensions.Logging
 open Microsoft.JSInterop
 open Plk.Blazor.DragDrop
 
-// Shape returned by wwwroot/js/canvas.js's toContentRelative - Blazor's JS interop uses
-// camelCase JSON by default, so this maps back from the JS object's lowercase x/y.
-type private JsPoint = { X: float; Y: float }
 
 type private HomeModel = {
     IsDragging: bool
     IsPanelOpen: bool
+    // While true, clicking a removable card deletes it instead of flipping it (see
+    // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button.
+    IsDeleteMode: bool
     // The cluster currently being freely repositioned by the user (if any), and the
     // mouse/position it started from - used to compute the live position on every mousemove.
     DraggingClusterId: Guid option
@@ -34,7 +34,8 @@ type Home() =
 
     let mutable model = {
         IsDragging = false
-        IsPanelOpen = false
+        IsPanelOpen = true
+        IsDeleteMode = false
         DraggingClusterId = None
         DragStartMouseX = 0.0
         DragStartMouseY = 0.0
@@ -42,30 +43,53 @@ type Home() =
         DragStartY = 0.0
     }
 
-    // The pixel footprint of one cluster (used both for cell sizing and as the simple
-    // axis-aligned overlap footprint below) and the headroom the canvas starts with before the
-    // first cluster, so it's visible without scrolling on first load.
+    // Each cluster's reserved box size, and the point the empty canvas is centered on before
+    // any cluster exists (used only as a fallback for sizing the background dropzone - see the
+    // minX/maxX/minY/maxY fallback in Render()).
     let cellSize = 550.0
     let startPosition = (cellSize, cellSize)
 
-    // Every known cluster's absolute pixel position, keyed by a stable id rather than a grid
-    // cell - dragging and drop-anywhere both produce arbitrary free-form coordinates. Kept
-    // outside the HomeModel record (like LoreCluster's own `cards`/`cardUiStates`) since it's
-    // mutated on every mousemove while dragging.
+    // A freshly drop-anywhere-created cluster's footprint before LoreCluster's own
+    // OnAfterRender has had a chance to report its real one (see clusterFootprints below) - it
+    // always starts with just a primary card, so this matches LoreCluster.ComputeMargin's
+    // result for that exact case (270 base + 2*60 primary-only margin).
+    let primaryOnlyFootprint = 390.0
+
+    // Every known cluster's absolute pixel position (its cellSize x cellSize reserved box's
+    // top-left corner), keyed by a stable id rather than a grid cell - dragging and
+    // drop-anywhere both produce arbitrary free-form coordinates. Kept outside the HomeModel
+    // record (like LoreCluster's own `cards`/`cardUiStates`) since it's mutated on every
+    // mousemove while dragging. Starts empty - every cluster is created via drop-anywhere
+    // (OnCanvasDrop), never auto-spawned.
     let clusterPositions = Dictionary<Guid, float * float>()
+
+    // Each known cluster's actual current visual footprint in pixels, reported by its own
+    // LoreCluster via OnFootprintChanged - lets the overlap check below react to what's really
+    // drawn (a bare primary card vs. one fully decorated with inner/outer cards) instead of
+    // reserving every cluster's full cellSize box regardless of its content.
+    let clusterFootprints = Dictionary<Guid, float>()
 
     // Seeds a newly drop-anywhere-created cluster's primary card, read once by LoreCluster at
     // its own initialization (LoreCluster.InitialPrimaryCard).
     let initialCards = Dictionary<Guid, Card>()
 
-    do clusterPositions[Guid.NewGuid()] <- startPosition
+    let footprintOf id =
+        match clusterFootprints.TryGetValue id with
+        | true, footprint -> footprint
+        | false, _ -> primaryOnlyFootprint
 
-    let overlaps (x1, y1) (x2, y2) =
-        abs (x1 - x2) < cellSize && abs (y1 - y2) < cellSize
+    // Both positions are each cluster's box top-left corner, but the box's actual drawn content
+    // is centered within it (see cellSize's doc comment) - compare true visual centers against
+    // the sum of each cluster's own half-footprint, not a flat shared threshold.
+    let overlaps (footprintA: float) (xA, yA) (footprintB: float) (xB, yB) =
+        let halfSum = (footprintA + footprintB) / 2.0
+        abs ((xA + cellSize / 2.0) - (xB + cellSize / 2.0)) < halfSum
+        && abs ((yA + cellSize / 2.0) - (yB + cellSize / 2.0)) < halfSum
 
-    let wouldOverlapAny (excludeId: Guid option) candidate =
+    let wouldOverlapAny (excludeId: Guid option) (candidateFootprint: float) candidate =
         clusterPositions
-        |> Seq.exists(fun pair -> Some pair.Key <> excludeId && overlaps candidate pair.Value)
+        |> Seq.exists(fun pair ->
+            Some pair.Key <> excludeId && overlaps candidateFootprint candidate (footprintOf pair.Key) pair.Value)
 
     // Bound to .canvas-area (the scrollable container) so canvas.js can convert a drop's
     // viewport-relative coordinates into coordinates relative to that container's own content.
@@ -83,20 +107,20 @@ type Home() =
 
     member this.TriggerReRender() = this.StateHasChanged()
 
-    member this.OnClusterStarted(id: Guid) =
+    // Removing the primary card leaves the cluster with no cards at all (see
+    // LoreCluster.OnClusterEmptied's doc comment) - drop the whole reserved position rather
+    // than keeping an empty, re-fillable slot around.
+    member this.OnClusterEmptied(id: Guid) =
 
-        match clusterPositions.TryGetValue id with
-        | false, _ -> ()
-        | true, (x, y) ->
-            let candidates = [ (x - cellSize, y); (x + cellSize, y); (x, y - cellSize); (x, y + cellSize) ]
-            let mutable addedAny = false
+        clusterPositions.Remove id |> ignore
+        clusterFootprints.Remove id |> ignore
+        initialCards.Remove id |> ignore
+        this.TriggerReRender()
 
-            for candidate in candidates do
-                if not (wouldOverlapAny None candidate) then
-                    clusterPositions[Guid.NewGuid()] <- candidate
-                    addedAny <- true
-
-            if addedAny then this.TriggerReRender()
+    // A cluster's own footprint doesn't need a re-render just to be recorded - it's only
+    // consulted on-demand by the overlap check during a later drag/drop.
+    member this.OnFootprintChanged (id: Guid) (footprint: float) =
+        clusterFootprints[id] <- footprint
 
     member this.StartClusterDrag (id: Guid) (e: MouseEventArgs) =
 
@@ -125,7 +149,7 @@ type Home() =
 
             // Overlapping the target simply keeps the cluster at its last valid position for
             // this tick rather than any push/slide resolution - the next mousemove tries again.
-            if not (wouldOverlapAny (Some id) candidate) then
+            if not (wouldOverlapAny (Some id) (footprintOf id) candidate) then
                 clusterPositions[id] <- candidate
                 this.TriggerReRender()
 
@@ -144,19 +168,27 @@ type Home() =
         | None -> ()
         | Some element ->
             task {
-                let! point =
-                    this.JSRuntime
-                        .InvokeAsync<JsPoint>("loreBuilderCanvas.toContentRelative", element, clientX, clientY)
-                        .AsTask()
+                try
+                    let! point =
+                        this.JSRuntime
+                            .InvokeAsync<float[]>("loreBuilderCanvas.toContentRelative", element, clientX, clientY)
+                            .AsTask()
 
-                let candidate = (point.X, point.Y)
+                    // clusterPositions holds each cluster's box top-left corner, but the drop
+                    // point is where the card visually landed - center the new box on that
+                    // point (half a cell size back in each direction) rather than anchoring its
+                    // corner there, so the cluster actually appears where it was dropped.
+                    let candidate = (point.[0] - cellSize / 2.0, point.[1] - cellSize / 2.0)
 
-                if not (wouldOverlapAny None candidate) then
-                    let id = Guid.NewGuid()
-                    clusterPositions[id] <- candidate
-                    initialCards[id] <- card
-                    this.OnClusterStarted id
-                    this.TriggerReRender()
+                    if not (wouldOverlapAny None primaryOnlyFootprint candidate) then
+                        let id = Guid.NewGuid()
+                        clusterPositions[id] <- candidate
+                        initialCards[id] <- card
+                        this.TriggerReRender()
+                with ex ->
+                    // Not expected to fail in normal operation - logged rather than silently
+                    // swallowed since this task is fire-and-forget from the caller's side.
+                    this.Logger.LogError(ex, "OnCanvasDrop failed")
             }
             |> ignore
 
@@ -182,6 +214,16 @@ type Home() =
                         this.TriggerReRender())
 
                     i { attr.``class`` "fa-solid fa-layer-group" }
+                }
+
+                div {
+                    attr.``class`` (if model.IsDeleteMode then "activity-bar-icon active" else "activity-bar-icon")
+
+                    on.click (fun _ ->
+                        model <- { model with IsDeleteMode = not model.IsDeleteMode }
+                        this.TriggerReRender())
+
+                    i { attr.``class`` "fa-solid fa-trash" }
                 }
             }
 
@@ -220,11 +262,19 @@ type Home() =
                 // Sized to the actual extent of the known clusters (plus one cellSize of margin
                 // on every side, enough to catch a drop-anywhere placed just outside them) rather
                 // than a large fixed area - a fixed size would force .canvas-area's scrollable
-                // region to that size regardless of how few clusters actually exist.
-                let minX = clusterPositions.Values |> Seq.map fst |> Seq.min
-                let maxX = clusterPositions.Values |> Seq.map fst |> Seq.max
-                let minY = clusterPositions.Values |> Seq.map snd |> Seq.min
-                let maxY = clusterPositions.Values |> Seq.map snd |> Seq.max
+                // region to that size regardless of how few clusters actually exist. Falls back
+                // to startPosition when the last cluster has just been deleted (OnClusterEmptied
+                // can leave clusterPositions empty), so there's still a background dropzone to
+                // drop a card on and start over.
+                let minX, maxX, minY, maxY =
+                    if clusterPositions.Count = 0 then
+                        let x, y = startPosition
+                        x, x, y, y
+                    else
+                        clusterPositions.Values |> Seq.map fst |> Seq.min,
+                        clusterPositions.Values |> Seq.map fst |> Seq.max,
+                        clusterPositions.Values |> Seq.map snd |> Seq.min,
+                        clusterPositions.Values |> Seq.map snd |> Seq.max
 
                 div {
                     attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
@@ -249,11 +299,13 @@ type Home() =
 
                         comp<LoreCluster> {
                             "DropzonesAreActive" => model.IsDragging
+                            "IsDeleteMode" => model.IsDeleteMode
                             "InitialPrimaryCard" =>
                                 (match initialCards.TryGetValue id with
                                  | true, card -> Some card
                                  | false, _ -> None)
-                            "OnClusterStarted" => fun () -> this.OnClusterStarted id
+                            "OnClusterEmptied" => fun () -> this.OnClusterEmptied id
+                            "OnFootprintChanged" => fun (footprint: float) -> this.OnFootprintChanged id footprint
                             "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
                         }
                     }

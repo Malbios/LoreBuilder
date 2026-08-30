@@ -76,6 +76,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    /* Purely a positioning wrapper (like .cluster-exterior one level in) - without this, its
+       full 550x550 box (including the empty flex padding around a smaller cluster, or an
+       entirely empty auto-spawned neighbor cell) swallows drops meant for
+       .canvas-background-dropzone underneath, since it sits above it (z-index 1 vs 0).
+       Interactive descendants (.primary, the per-slot dropzones) already opt back in with
+       their own pointer-events: auto. */
+    pointer-events: none;
 }
 
 /* Sits behind every .canvas-cell (its actual left/top/width/height are set inline in Home.fs,

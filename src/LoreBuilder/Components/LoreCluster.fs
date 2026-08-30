@@ -36,8 +36,9 @@ type LoreCluster() =
         |> Dictionary.ofList
 
     // Owns each slot's current side/rotation so it can be passed down on every render
-    // without fighting Card's own local state (Card notifies us via OnCurrentSideChanged/
-    // OnRotationChanged whenever the user flips/rotates it).
+    // without fighting Card's own local state (Card notifies us via OnRotationChanged
+    // whenever the user rotates it - CurrentSide is fixed per slot by initialUiState, never
+    // toggled by Card itself, which has no flip mechanic).
     let cardUiStates =
         Union.toList<ClusterPosition>()
         |> List.map(fun position -> (position, initialUiState position))
@@ -50,6 +51,10 @@ type LoreCluster() =
     
     [<Parameter>]
     member val DropzonesAreActive = false with get, set
+
+    // Forwarded to every card - see Card.IsDeleteMode's doc comment.
+    [<Parameter>]
+    member val IsDeleteMode = false with get, set
 
     [<Parameter>]
     member val Lore = "" with get, set
@@ -69,8 +74,11 @@ type LoreCluster() =
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
 
+    // Fired when the primary card is removed and leaves the cluster with no cards at all - the
+    // primary can only be removed once it has no inner cards depending on it (see canBeRotated
+    // below), which by construction means every other slot is already empty too.
     [<Parameter>]
-    member val OnClusterStarted: unit -> unit = ignore with get, set
+    member val OnClusterEmptied: unit -> unit = ignore with get, set
 
     // Fired on mousedown on the primary card specifically - the grab handle for repositioning
     // the whole cluster on a free-form canvas (e.g. Pages/Home.fs). Not wired to Inner/Outer
@@ -78,18 +86,51 @@ type LoreCluster() =
     [<Parameter>]
     member val OnPrimaryMouseDown: MouseEventArgs -> unit = ignore with get, set
 
+    // Fired (after render, whenever it actually changes) with this cluster's current total
+    // visual footprint in pixels - cluster-interior's fixed 270px plus twice ComputeMargin().
+    // Lets Pages/Home.fs's overlap check use each cluster's real current size (a bare primary
+    // card vs. one fully decorated with inner/outer cards) instead of one flat worst-case value.
+    [<Parameter>]
+    member val OnFootprintChanged: float -> unit = ignore with get, set
+
+    member val private PreviousFootprint: float option = None with get, set
+
+    member private this.HasCard position =
+        cards[position] <> Card.empty
+
+    member private this.NoInnerCards =
+        not (
+            this.HasCard ClusterPosition.Inner_Bottom
+            || this.HasCard ClusterPosition.Inner_Left
+            || this.HasCard ClusterPosition.Inner_Top
+            || this.HasCard ClusterPosition.Inner_Right
+        )
+
+    // Shared by Render() (for the cluster-interior CSS margin) and OnAfterRender (for
+    // OnFootprintChanged) so the two can't drift apart.
+    member private this.ComputeMargin() =
+        let innerMargin = if this.HasCard ClusterPosition.Primary then 60 else 0
+        let outerMargin = if this.NoInnerCards then 0 else 40
+
+        innerMargin + outerMargin
+
+    override this.OnAfterRender(_firstRender: bool) =
+        let footprint = 270.0 + 2.0 * float (this.ComputeMargin())
+
+        if this.PreviousFootprint <> Some footprint then
+            this.PreviousFootprint <- Some footprint
+            this.OnFootprintChanged footprint
+
     // StateHasChanged is protected and can't be called directly from within a lambda -
     // this member wrapper is the standard F#/Blazor workaround.
     member private this.NotifyStateChanged() =
         this.StateHasChanged()
 
     override this.Render() =
-        
-        let hasCard position =
-            cards[position] <> Card.empty
-            
-        let noInnerCards =
-            not (hasCard ClusterPosition.Inner_Bottom || hasCard ClusterPosition.Inner_Left || hasCard ClusterPosition.Inner_Top || hasCard ClusterPosition.Inner_Right)
+
+        let hasCard = this.HasCard
+
+        let noInnerCards = this.NoInnerCards
 
         let innerPositionFor outerPosition =
             match outerPosition with
@@ -136,7 +177,7 @@ type LoreCluster() =
             let cardClassName = ClusterPosition.toString position
             let dropzoneClassName = $"{cardClassName}-dropzone"
             let rotation = ClusterPosition.toRotation position
-            
+
             let acceptDrop (card: Card) _ = // droppedCard, target (target could be null)
                 match position with
                 | ClusterPosition.Primary -> true
@@ -160,8 +201,8 @@ type LoreCluster() =
                 cards[position] <- newCard
                 cardUiStates[position] <- initialUiState position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
-                if position = ClusterPosition.Primary && oldCard = Card.empty && newCard <> Card.empty then
-                    this.OnClusterStarted()
+                if position = ClusterPosition.Primary && oldCard <> Card.empty && newCard = Card.empty then
+                    this.OnClusterEmptied()
 
             let onDrop card = replaceCard card
 
@@ -173,10 +214,6 @@ type LoreCluster() =
             let pointerEventsClass =
                 if this.DropzonesAreActive then " auto-pointer" else " no-pointer"
                 
-            let onCurrentSideChanged newSide =
-                cardUiStates[position] <- { cardUiStates[position] with CurrentSide = newSide }
-                this.NotifyStateChanged()
-
             let onRotationChanged newRotation =
                 cardUiStates[position] <- { cardUiStates[position] with Rotation = newRotation }
                 this.NotifyStateChanged()
@@ -207,20 +244,15 @@ type LoreCluster() =
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
                 | ClusterPosition.Outer_Right -> true
-                
-            // The primary card is never flippable in a cluster - it's only rotatable and
-            // removable, which frees up "click-and-drag the body" as the whole-cluster
-            // drag handle without it fighting a flip-on-click gesture.
-            let canBeFlipped = false
-            
+
             concat {
                 let dropzoneVisibility =
                     if showDropzone position then "" else "display: none;"
-                    
+
                 div {
                     attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
                     attr.style $"{dropzoneVisibility}"
-                    
+
                     comp<Dropzone<Card>> {
                         "MaxItems" => 1
                         "Items" => List<Card>()
@@ -228,15 +260,21 @@ type LoreCluster() =
                         "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
                     }
                 }
-                        
+
+                // isDragHandle/cardStyle/onCardMouseDown are always applied unconditionally
+                // below (rather than branching attr.style/on.mousedown per-position inside the
+                // div) so this element's attribute/handler shape never changes between renders -
+                // a shape change (e.g. when a card first lands in the primary slot) is exactly
+                // the kind of thing that can make Blazor's render-tree diffing drop a handler.
+                let isDragHandle = position = ClusterPosition.Primary && card <> Card.empty
+                let cardStyle = if isDragHandle then $"{rotation}cursor: grab;" else rotation
+                let onCardMouseDown (e: MouseEventArgs) =
+                    if isDragHandle then this.OnPrimaryMouseDown e
+
                 div {
                     attr.``class`` cardClassName
-
-                    if position = ClusterPosition.Primary && card <> Card.empty then
-                        attr.style $"{rotation}cursor: grab;"
-                        on.mousedown (fun e -> this.OnPrimaryMouseDown e)
-                    else
-                        attr.style rotation
+                    attr.style cardStyle
+                    on.mousedown onCardMouseDown
 
                     if card <> Card.empty then
                         comp<LoreBuilder.Components.Card> {
@@ -244,14 +282,13 @@ type LoreCluster() =
                             "Size" => 270
                             "CurrentSide" => cardUiStates[position].CurrentSide
                             "Rotation" => cardUiStates[position].Rotation
-                            "CanBeFlipped" => canBeFlipped
                             "CanBeRotated" => canBeRotated
                             // Removing a card follows the same "nothing depends on it" rule as
                             // rotating it - an outer card is always free to remove, but an inner
                             // or primary card can't be pulled out from under a card attached to it.
                             "CanBeRemoved" => canBeRotated
+                            "IsDeleteMode" => this.IsDeleteMode
                             "ActiveEdge" => activeEdge
-                            "OnCurrentSideChanged" => onCurrentSideChanged
                             "OnRotationChanged" => onRotationChanged
                             "OnRemove" => onRemove
                         }
@@ -260,12 +297,8 @@ type LoreCluster() =
                 }
             }
             
-        let margin =
-            let innerMargin = if hasCard ClusterPosition.Primary then 60 else 0
-            let outerMargin = if noInnerCards then 0 else 40
-            
-            innerMargin + outerMargin
-        
+        let margin = this.ComputeMargin()
+
         div {
             attr.``class`` "cluster-exterior"
             
