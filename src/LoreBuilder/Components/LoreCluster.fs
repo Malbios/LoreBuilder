@@ -44,9 +44,9 @@ type LoreCluster() =
         |> Dictionary.ofList
 
     // Owns each slot's current side/rotation so it can be passed down on every render
-    // without fighting Card's own local state (Card notifies us via OnRotationChanged
-    // whenever the user rotates it - CurrentSide is fixed per slot by initialUiState, never
-    // toggled by Card itself, which has no flip mechanic).
+    // without fighting Card's own local state (Card notifies us via OnRotationChanged whenever
+    // the user rotates it, and via OnCurrentSideChanged whenever a Modifier card is clicked to
+    // flip it - CurrentSide is fixed per slot by initialUiState for every other card type).
     let cardUiStates =
         Union.toList<ClusterPosition>()
         |> List.map(fun position -> (position, initialUiState position))
@@ -81,6 +81,10 @@ type LoreCluster() =
     [<Parameter>]
     member val IsDeleteMode = false with get, set
 
+    // Forwarded to every card - see Card.IsExtractionMode's doc comment.
+    [<Parameter>]
+    member val IsExtractionMode = false with get, set
+
     [<Parameter>]
     member val Lore = "" with get, set
 
@@ -91,13 +95,70 @@ type LoreCluster() =
     [<Parameter>]
     member val InitialPrimaryCard: Card option = None with get, set
 
+    // Seeds one Inner slot at creation time only (read once in OnInitialized), alongside
+    // InitialPrimaryCard - used by Pages/Home.fs's extraction feature, whose freshly-spawned
+    // cluster already comes with a random Modifier auto-attached to whichever Inner direction
+    // faces back toward the source cluster (see ClusterPlacement.findExtractionSpot). Unrelated
+    // to InitialPrimaryRotation below - which Inner direction a card ends up in and which of
+    // Primary's own cues is "active" are two independent things (see that parameter's own doc).
+    [<Parameter>]
+    member val InitialInnerCard: (ClusterPosition * Card) option = None with get, set
+
+    // Seeds Primary's own Rotation at creation time only (read once in OnInitialized) - used by
+    // Pages/Home.fs's extraction feature to preserve whichever cue was active on the extracted
+    // Outer card (e.g. keeps "annihilation" showing rather than resetting to whatever's on
+    // Primary's own Bottom edge) - see the OnExtractCard doc comment below for why the raw
+    // Rotation number can't just be copied across and has to be recomputed instead.
+    [<Parameter>]
+    member val InitialPrimaryRotation: int option = None with get, set
+
+    // Which Inner position (if any) holds the auto-attached Modifier this cluster was spawned
+    // with, captured once from InitialInnerCard at creation - distinguishes it from a
+    // *manually*-placed card in the same slot for canBeRemoved's own doc comment below. A
+    // freshly-spawned cluster is never later re-seeded with a different InitialInnerCard, so this
+    // never needs to change after OnInitialized.
+    member val private AutoModifierPosition: ClusterPosition option = None with get, set
+
     override this.OnInitialized() =
         match this.InitialPrimaryCard with
         | Some card -> cards[ClusterPosition.Primary] <- card
         | None -> ()
-    
+
+        match this.InitialInnerCard with
+        | Some(position, card) ->
+            cards[position] <- card
+            this.AutoModifierPosition <- Some position
+        | None -> ()
+
+        match this.InitialPrimaryRotation with
+        | Some rotation ->
+            cardUiStates[ClusterPosition.Primary] <-
+                { cardUiStates[ClusterPosition.Primary] with Rotation = rotation }
+        | None -> ()
+
     [<Parameter>]
     member val OnCardReplace: Card -> unit = ignore with get, set
+
+    // Fired when the user extracts an eligible (Outer) card into a brand-new cluster of its own -
+    // see Card.OnExtract's doc comment. Reports which position was extracted from (so
+    // Pages/Home.fs can track the relationship and unlock it again if the new cluster is later
+    // deleted - see LockedPositions), the extracted card's data, and the Rotation its new
+    // cluster's Primary should use to keep showing the same cue this card was already showing as
+    // an Outer card - Outer's own ActiveEdge is hardcoded CardEdge.Top (an *opposite* match
+    // against edgeFromRotation(Rotation) - see Card.fs's isVisible) while Primary's is hardcoded
+    // CardEdge.Bottom (a *direct* match), so the raw Rotation number means something different in
+    // each role; only the actual active CardEdge survives the move, converted back to whatever
+    // Rotation makes Primary's own direct-match formula land on that same edge.
+    [<Parameter>]
+    member val OnExtractCard: ClusterPosition -> Card -> int -> unit = (fun _ _ _ -> ()) with get, set
+
+    // Which of this cluster's own positions currently have a live (not-yet-deleted) cluster
+    // extracted from them - kept and derived entirely by Pages/Home.fs (which is the only place
+    // that knows about every cluster at once), not owned here, so a locked position automatically
+    // unlocks the moment Home.fs notices the extracted cluster was deleted, with no explicit
+    // "unlock" event needed - it's just a re-render away. See canBeRotated below.
+    [<Parameter>]
+    member val LockedPositions: Set<ClusterPosition> = Set.empty with get, set
 
     // Fired when the primary card is removed and leaves the cluster with no cards at all - the
     // primary can only be removed once it has no inner cards depending on it (see canBeRotated
@@ -384,6 +445,32 @@ type LoreCluster() =
                     cardUiStates[position] <- { cardUiStates[position] with Rotation = newRotation }
                     this.NotifyStateChanged()
 
+            let onCurrentSideChanged newSide =
+                cardUiStates[position] <- { cardUiStates[position] with CurrentSide = newSide }
+                this.NotifyStateChanged()
+
+            // Reports this position and this exact card's data up to Pages/Home.fs, which does
+            // the actual work of copying it into a brand-new cluster elsewhere - LoreCluster
+            // itself doesn't need to know anything about placement/positioning. Also works out
+            // which Rotation the new cluster's Primary needs to keep showing the same cue this
+            // card is showing right now (see OnExtractCard's own doc comment for why this can't
+            // just be Rotation copied verbatim) - Outer's ActiveEdge is always CardEdge.Top, so
+            // this card's real active CardEdge is whatever's opposite of
+            // edgeFromRotation(its own Rotation).
+            let onExtract () =
+                let activeCueEdge =
+                    CardHelpers.activePhysicalEdge (Some CardEdge.Top) cardUiStates[position].Rotation
+                    |> Option.get
+
+                let newPrimaryRotation =
+                    match activeCueEdge with
+                    | CardEdge.Bottom -> 0
+                    | CardEdge.Right -> 90
+                    | CardEdge.Top -> 180
+                    | CardEdge.Left -> 270
+
+                this.OnExtractCard position card newPrimaryRotation
+
             let onGrowthChanged growth =
                 if growthByPosition[position] <> growth then
                     growthByPosition[position] <- growth
@@ -397,7 +484,18 @@ type LoreCluster() =
             let offsetStyle =
                 match offsetPropertyFor position with
                 | None -> ""
-                | Some prop -> $"{prop}: -{baseOffsetFor position + growthOffsetFor position}px;"
+                | Some prop ->
+                    // A Modifier's own theme is white with no icon/header content, unlike a
+                    // richly-appointed card type, so its tugged reveal sliver has little to fill
+                    // it and reads as mostly empty space - pull it closer to the primary so less
+                    // of that sliver shows.
+                    let baseOffset =
+                        if card.Type = CardType.Modifier then
+                            baseOffsetFor position * 0.6
+                        else
+                            baseOffsetFor position
+
+                    $"{prop}: -{baseOffset + growthOffsetFor position}px;"
 
             let activeEdge =
                 match position with
@@ -416,14 +514,42 @@ type LoreCluster() =
                 | ClusterPosition.Outer2_Top
                 | ClusterPosition.Outer2_Right -> Some CardEdge.Top
 
+            // True only when this cluster is exactly "Primary + the auto-attached Modifier,
+            // nothing else" - the one case where Primary is allowed to be removed despite having
+            // an inner card. Removing Primary in that case still removes the whole cluster (see
+            // replaceCard/OnClusterEmptied below) - the auto-Modifier isn't explicitly cleared,
+            // it just goes away along with everything else once this whole component is torn
+            // down, the same way it already would for a bare, attachment-free primary.
+            let onlyHasAutoModifier =
+                match this.AutoModifierPosition with
+                | Some autoPos when hasCard autoPos ->
+                    let noOtherInnerCards =
+                        [ ClusterPosition.Inner_Bottom; ClusterPosition.Inner_Left
+                          ClusterPosition.Inner_Top; ClusterPosition.Inner_Right ]
+                        |> List.forall (fun p -> p = autoPos || not (hasCard p))
+
+                    noOtherInnerCards && this.NoOuterCards
+                | _ -> false
+
             // canBeRemoved keeps the original "nothing depends on it" removal rule for Primary
             // (noInnerCards) - unrelated to canBeRotated below, since Primary's rotate arrows now
             // always do *something* (rotate itself alone, or the whole cluster once it has inner
             // cards - see onRotationChanged), but removing it while things are attached still
-            // doesn't make sense.
+            // doesn't make sense - except for the auto-attached Modifier specifically, which
+            // isn't removable on its own (see below) so Primary has to be the one that takes it
+            // along, when it's the only thing attached.
             let canBeRemoved =
                 match position with
-                | ClusterPosition.Primary -> noInnerCards
+                | ClusterPosition.Primary -> noInnerCards || onlyHasAutoModifier
+
+                // The auto-attached Modifier only ever comes and goes as a package deal with its
+                // cluster's Primary (see onlyHasAutoModifier above) - unlike a "regular" Inner
+                // card the user dragged on themselves, which stays individually removable.
+                | ClusterPosition.Inner_Bottom
+                | ClusterPosition.Inner_Left
+                | ClusterPosition.Inner_Top
+                | ClusterPosition.Inner_Right when Some position = this.AutoModifierPosition ->
+                    false
 
                 | ClusterPosition.Inner_Bottom -> not (hasCard ClusterPosition.Outer_Bottom)
                 | ClusterPosition.Inner_Left -> not (hasCard ClusterPosition.Outer_Left)
@@ -446,7 +572,21 @@ type LoreCluster() =
             let canBeRotated =
                 match position with
                 | ClusterPosition.Primary -> true
-                | _ -> canBeRemoved
+                // Once a card has been extracted from, a new cluster's Modifier orientation
+                // depends on this exact card's rotation staying put (see LockedPositions' own
+                // doc comment) - unrelated to canBeRemoved, which stays unaffected (it can still
+                // be deleted, just not rotated).
+                | _ -> canBeRemoved && not (this.LockedPositions.Contains position)
+
+            // Only filled Outer cards - not Outer2, Inner, or Primary - can be extracted into a
+            // new cluster of their own (see Pages/Home.fs's OnExtractCard).
+            let canBeExtracted =
+                match position with
+                | ClusterPosition.Outer_Bottom
+                | ClusterPosition.Outer_Left
+                | ClusterPosition.Outer_Top
+                | ClusterPosition.Outer_Right -> hasCard position
+                | _ -> false
 
             concat {
                 let dropzoneVisibility =
@@ -503,10 +643,14 @@ type LoreCluster() =
                             // do something even when it can't be removed).
                             "CanBeRemoved" => canBeRemoved
                             "IsDeleteMode" => this.IsDeleteMode
+                            "IsExtractionMode" => this.IsExtractionMode
+                            "CanBeExtracted" => canBeExtracted
                             "ActiveEdge" => activeEdge
                             "OnRotationChanged" => onRotationChanged
+                            "OnCurrentSideChanged" => onCurrentSideChanged
                             "OnGrowthChanged" => onGrowthChanged
                             "OnRemove" => onRemove
+                            "OnExtract" => onExtract
                         }
                     else
                         div { attr.style $"width: 270px; height: 270px;" }

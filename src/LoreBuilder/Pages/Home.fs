@@ -22,8 +22,12 @@ type private HomeModel = {
     DraggedCard: Card option
     IsPanelOpen: bool
     // While true, clicking a removable card deletes it instead of flipping it (see
-    // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button.
+    // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button. Mutually
+    // exclusive with IsExtractionMode (turning one on turns the other off).
     IsDeleteMode: bool
+    // While true, clicking an eligible (Outer) card extracts it into a brand-new cluster of its
+    // own (see Card.IsExtractionMode) - toggled via its own activity-bar button.
+    IsExtractionMode: bool
     // The cluster currently being freely repositioned by the user (if any), and the
     // mouse/position it started from - used to compute the live position on every mousemove.
     DraggingClusterId: Guid option
@@ -50,6 +54,7 @@ type Home() =
         DraggedCard = None
         IsPanelOpen = true
         IsDeleteMode = false
+        IsExtractionMode = false
         DraggingClusterId = None
         DragStartMouseX = 0.0
         DragStartMouseY = 0.0
@@ -75,6 +80,11 @@ type Home() =
     // result for that exact case (270 base + 2*60 primary-only margin).
     let primaryOnlyFootprint = 390.0
 
+    // An extracted cluster's footprint - it starts with a primary plus one auto-attached Inner
+    // Modifier card, matching LoreCluster.ComputeMargin's result for that case (270 base +
+    // 2*(60 primary margin + 40 an-inner-card-exists margin) = 470).
+    let primaryPlusInnerFootprint = 470.0
+
     // Every known cluster's absolute pixel position (its cellSize x cellSize reserved box's
     // top-left corner), keyed by a stable id rather than a grid cell - dragging and
     // drop-anywhere both produce arbitrary free-form coordinates. Kept outside the HomeModel
@@ -92,6 +102,29 @@ type Home() =
     // Seeds a newly drop-anywhere-created cluster's primary card, read once by LoreCluster at
     // its own initialization (LoreCluster.InitialPrimaryCard).
     let initialCards = Dictionary<Guid, Card>()
+
+    // Seeds an extracted cluster's one auto-attached Inner Modifier card and which direction it
+    // faces, read once by LoreCluster at its own initialization (LoreCluster.InitialInnerCard).
+    let initialInnerCards = Dictionary<Guid, ClusterPosition * Card>()
+
+    // Seeds an extracted cluster's Primary Rotation (preserving whichever cue was active on the
+    // source Outer card), read once by LoreCluster at its own initialization
+    // (LoreCluster.InitialPrimaryRotation) - see LoreCluster.fs's OnExtractCard doc comment.
+    let initialPrimaryRotations = Dictionary<Guid, int>()
+
+    // Maps an extracted cluster's id to the (source cluster id, source position) it was
+    // extracted from - lets lockedPositionsFor (below) tell a source cluster which of its own
+    // positions still have a *live* extraction, so LoreCluster can keep that position's rotation
+    // locked (see its own LockedPositions doc comment) for exactly as long as the extracted
+    // cluster still exists. Removed in OnClusterEmptied when the extracted cluster is deleted -
+    // nothing else needs to happen for the source to unlock again, since every LoreCluster gets
+    // handed a freshly-recomputed LockedPositions on the very next render regardless.
+    let extractionSources = Dictionary<Guid, Guid * ClusterPosition>()
+
+    let lockedPositionsFor sourceId =
+        extractionSources.Values
+        |> Seq.choose (fun (sid, position) -> if sid = sourceId then Some position else None)
+        |> Set.ofSeq
 
     let footprintOf id =
         match clusterFootprints.TryGetValue id with
@@ -140,6 +173,9 @@ type Home() =
         clusterPositions.Remove id |> ignore
         clusterFootprints.Remove id |> ignore
         initialCards.Remove id |> ignore
+        initialInnerCards.Remove id |> ignore
+        initialPrimaryRotations.Remove id |> ignore
+        extractionSources.Remove id |> ignore
         this.TriggerReRender()
 
     // A cluster's own footprint doesn't need a re-render just to be recorded - it's only
@@ -291,6 +327,29 @@ type Home() =
             }
             |> ignore
 
+    // Extraction: copies an eligible Outer card (see LoreCluster's canBeExtracted) into a
+    // brand-new, independent cluster placed nearby - the source cluster/card is left untouched.
+    // The new cluster also gets a random Modifier card auto-attached to whichever Inner slot
+    // faces back toward the source, when a nearby free spot allows it (see
+    // ClusterPlacement.findExtractionSpot).
+    member this.OnExtractCard (sourceId: Guid) (sourcePosition: ClusterPosition) (card: Card) (primaryRotation: int) =
+
+        match clusterPositions.TryGetValue sourceId with
+        | false, _ -> ()
+        | true, sourcePos ->
+            match ClusterPlacement.findExtractionSpot (wouldOverlapAny None) cellSize primaryPlusInnerFootprint sourcePos with
+            | None -> ()
+            | Some(candidate, innerPosition) ->
+                let id = Guid.NewGuid()
+                clusterPositions[id] <- candidate
+                clusterFootprints[id] <- primaryPlusInnerFootprint
+                initialCards[id] <- Card.copy card
+                initialInnerCards[id] <- (innerPosition, Utils.randomModifierCard ())
+                initialPrimaryRotations[id] <- primaryRotation
+                extractionSources[id] <- (sourceId, sourcePosition)
+                model <- { model with IsExtractionMode = false }
+                this.TriggerReRender()
+
     override this.Render() =
 
         div {
@@ -319,10 +378,28 @@ type Home() =
                     attr.``class`` (if model.IsDeleteMode then "activity-bar-icon active" else "activity-bar-icon")
 
                     on.click (fun _ ->
-                        model <- { model with IsDeleteMode = not model.IsDeleteMode }
+                        model <- {
+                            model with
+                                IsDeleteMode = not model.IsDeleteMode
+                                IsExtractionMode = false
+                        }
                         this.TriggerReRender())
 
                     i { attr.``class`` "fa-solid fa-trash" }
+                }
+
+                div {
+                    attr.``class`` (if model.IsExtractionMode then "activity-bar-icon active" else "activity-bar-icon")
+
+                    on.click (fun _ ->
+                        model <- {
+                            model with
+                                IsExtractionMode = not model.IsExtractionMode
+                                IsDeleteMode = false
+                        }
+                        this.TriggerReRender())
+
+                    i { attr.``class`` "fa-solid fa-clone" }
                 }
 
                 div {
@@ -422,13 +499,26 @@ type Home() =
                                 "DropzonesAreActive" => model.DraggedCard.IsSome
                                 "DraggedCard" => model.DraggedCard
                                 "IsDeleteMode" => model.IsDeleteMode
+                                "IsExtractionMode" => model.IsExtractionMode
                                 "InitialPrimaryCard" =>
                                     (match initialCards.TryGetValue id with
                                      | true, card -> Some card
                                      | false, _ -> None)
+                                "InitialInnerCard" =>
+                                    (match initialInnerCards.TryGetValue id with
+                                     | true, positionAndCard -> Some positionAndCard
+                                     | false, _ -> None)
+                                "InitialPrimaryRotation" =>
+                                    (match initialPrimaryRotations.TryGetValue id with
+                                     | true, rotation -> Some rotation
+                                     | false, _ -> None)
+                                "LockedPositions" => lockedPositionsFor id
                                 "OnClusterEmptied" => fun () -> this.OnClusterEmptied id
                                 "OnFootprintChanged" => fun (footprint: float) -> this.OnFootprintChanged id footprint
                                 "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
+                                "OnExtractCard" =>
+                                    fun (position: ClusterPosition) (card: Card) (rotation: int) ->
+                                        this.OnExtractCard id position card rotation
                             }
                         }
                 }

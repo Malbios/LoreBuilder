@@ -46,6 +46,7 @@
     <Compile Include="Model\Common.fs" />
     <Compile Include="Model\Card.fs" />
     <Compile Include="Model\Cluster.fs" />
+    <Compile Include="Model\ClusterPlacement.fs" />
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Builders.fs" />

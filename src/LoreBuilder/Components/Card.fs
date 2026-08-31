@@ -215,6 +215,32 @@ module CardHelpers =
                 let cueClass = $"cue {cueKind}-cue {cueKind}-{edgeName}-edge"
                 let cueStyle = $"{positionOverrideStyle}visibility: {visibility};"
 
+                // All modifiers work both sides, per an edge/direction (see LoreCluster.fs's
+                // extraction feature) - flanking triangles are a permanent visual signature of
+                // that, not tied to any one card instance's history. Sits inside the same
+                // already-flex .simple-cue/.icon-cue/.complex-cue container as the cue content
+                // itself, so it lays out as part of that row rather than needing its own
+                // positioning, and inherits the surrounding text color for free.
+                //
+                // Both point "up" in this container's own unrotated frame, not left/right - for
+                // an Inner/Outer/Outer2 card this container already carries a rotation chain
+                // (this position's own wrapper rotation, this card's own Rotation, and this
+                // edge's own CSS rotation) that exists specifically to make the active cue read
+                // facing the primary - and that chain always composes to the same constant per
+                // direction (the card's own Rotation and the edge's own CSS rotation cancel by
+                // construction, regardless of which edge ends up active), so "up" pre-rotation
+                // reliably ends up pointing at the primary post-rotation, for any of the 4
+                // directions, with no extra per-direction logic needed here.
+                let cueContent =
+                    if data.Type = CardType.Modifier then
+                        concat {
+                            i { attr.``class`` "fa-solid fa-caret-up modifier-edge-triangle" }
+                            cardCue data.Type cue
+                            i { attr.``class`` "fa-solid fa-caret-up modifier-edge-triangle" }
+                        }
+                    else
+                        cardCue data.Type cue
+
                 // Whether a ref gets bound here depends only on data.EdgeRefs (i.e. only on which
                 // side this is - stable for the component's whole lifetime), never on isActiveEdge
                 // (which changes when rotated) - see CardData.EdgeRefs for why that distinction
@@ -230,7 +256,7 @@ module CardHelpers =
 
                         getRef edge
 
-                        cardCue data.Type cue
+                        cueContent
                     }
                 | None ->
                     div {
@@ -238,7 +264,7 @@ module CardHelpers =
                         attr.``class`` cueClass
                         attr.style cueStyle
 
-                        cardCue data.Type cue
+                        cueContent
                     }
             )
             |> Utils.renderList
@@ -294,12 +320,31 @@ type Card() =
     // MeasuredCueHeight guards its own re-render, so it only fires on an actual change.
     member val private PreviousGrowthPx: float option = None with get, set
 
+    // Captures CurrentSide's value at mount and never changes afterward, even though CurrentSide
+    // itself now can (Modifier cards toggle it - see onCardClick below). EdgeRefs' Some/None
+    // split (below) has to stay keyed off something that's stable for the component's whole
+    // lifetime: a ref's presence/absence toggling between renders at the *same* tree position
+    // crashes Blazor's diffing ("Unexpected frame type during RemoveOldFrame:
+    // ElementReferenceCapture") - exactly what conditioning it directly on CurrentSide now would
+    // do on every flip. Which side actually ends up holding the refs stops mattering once it's
+    // stable: growth measurement is a no-op for Modifier cards anyway (they're always Simple
+    // cues - see CardHelpers.growthEdge), which is the only thing that would ever ask for them.
+    member val private StableEdgeRefsSide = CardSide.Primary with get, set
+
+    override this.OnInitialized() =
+        this.StableEdgeRefsSide <- this.CurrentSide
+
     [<Parameter>]
     member val Data = Card.empty with get, set
-    
+
+    // Fixed per slot by LoreCluster's initialUiState for every card type except Modifier, which
+    // the user can toggle by clicking the card body (see onCardClick below) - "all modifiers work
+    // both sides". Not an animated flip (that general mechanic was removed for causing issues
+    // elsewhere) - just an instant swap; see Card.bolero.css's .card rule for why its old
+    // transition had to come out too, not just be left dormant.
     [<Parameter>]
     member val CurrentSide = CardSide.Primary with get, set
-    
+
     [<Parameter>]
     member val IsHovered = false with get, set
 
@@ -318,6 +363,23 @@ type Card() =
     // cluster ring).
     [<Parameter>]
     member val IsDeleteMode = false with get, set
+
+    // While true, clicking an eligible (CanBeExtracted) card copies it into a brand-new,
+    // independent cluster elsewhere on the canvas instead of doing anything else - set from
+    // Pages/Home.fs's extraction-mode toggle. Mutually exclusive with IsDeleteMode at the Home.fs
+    // level, but onCardClick's own branch ordering means delete still wins even if that ever
+    // wasn't true.
+    [<Parameter>]
+    member val IsExtractionMode = false with get, set
+
+    [<Parameter>]
+    member val CanBeExtracted = false with get, set
+
+    [<Parameter>]
+    member val OnExtract: unit -> unit = ignore with get, set
+
+    [<Parameter>]
+    member val OnCurrentSideChanged: CardSide -> unit = ignore with get, set
 
     [<Parameter>]
     member val ActiveEdge = None with get, set
@@ -379,9 +441,19 @@ type Card() =
         elif this.CanBeRemoved then " deletable"
         else " delete-mode-inert"
 
-    // Only the currently-shown side's cues can ever need growth room - CurrentSide never changes
-    // at runtime (click-to-flip is permanently removed), so the other side's cue is never shown
-    // and doesn't need space reserved for it. Shared by Render() and OnAfterRenderAsync so the
+    // Unlike DeleteModeClass, there's no "something depends on this card" story to explain for an
+    // ineligible card here (Outer cards have no dependents) - just "" outside extraction mode or
+    // when this card isn't eligible, no separate inert/dimmed state.
+    member private this.ExtractionModeClass () =
+
+        if this.IsExtractionMode && this.CanBeExtracted then " extractable" else ""
+
+    // Only the currently-shown side's cues can ever need growth room. For every card type except
+    // Modifier, CurrentSide is fixed for the component's whole lifetime (set once by LoreCluster's
+    // initialUiState), so the other side's cue is never shown and doesn't need space reserved for
+    // it - Modifier cards can change CurrentSide at runtime (see onCardClick), but this still holds
+    // since it re-derives from whatever CurrentSide currently is on every render, the same way it
+    // already tracks Rotation changing at runtime. Shared by Render() and OnAfterRenderAsync so the
     // two can't drift apart (same precedent as LoreCluster.fs's ComputeMargin()).
     member private this.CurrentSideCues() =
         match this.CurrentSide with
@@ -472,15 +544,34 @@ type Card() =
             | Some CardEdge.Right, Some height -> Some (height / 2.0 - 135.0)
             | _ -> None
 
-        let primaryEdgeRefs = if this.CurrentSide = CardSide.Primary then Some cueRefFor else None
-        let secondaryEdgeRefs = if this.CurrentSide = CardSide.Secondary then Some cueRefFor else None
+        let primaryEdgeRefs = if this.StableEdgeRefsSide = CardSide.Primary then Some cueRefFor else None
+        let secondaryEdgeRefs = if this.StableEdgeRefsSide = CardSide.Secondary then Some cueRefFor else None
 
         let onCardClick (_: MouseEventArgs) =
             if this.IsDeleteMode && this.CanBeRemoved then
                 this.OnRemove ()
+            elif this.IsExtractionMode && this.CanBeExtracted then
+                this.OnExtract ()
+            // Guarded on IsDeleteMode explicitly (not just structurally implied by the elif
+            // chain) so a card that's inert in delete mode (still depended on) doesn't fall
+            // through to flipping instead of staying inert. Not guarded on IsExtractionMode the
+            // same way though - unlike delete-mode-inert (a temporary state that could become
+            // deletable later), a card ineligible for extraction (anything but a filled Outer
+            // card) can never become extractable regardless of anything else, so there's nothing
+            // for extraction mode to actually be "protecting" here - suppressing flip on, say,
+            // the auto-attached Modifier just because extraction mode happens to still be on
+            // would only be confusing, not safer.
+            elif not this.IsDeleteMode && this.Data.Type = CardType.Modifier then
+                let newSide =
+                    match this.CurrentSide with
+                    | CardSide.Primary -> CardSide.Secondary
+                    | CardSide.Secondary -> CardSide.Primary
+
+                this.CurrentSide <- newSide
+                this.OnCurrentSideChanged newSide
 
         div {
-            attr.``class`` $"card-root{this.DeleteModeClass ()}"
+            attr.``class`` $"card-root{this.DeleteModeClass ()}{this.ExtractionModeClass ()}"
             attr.style $"width: {this.Size}px; height: {this.Size}px; position: relative;"
 
             on.mouseover (fun _ -> this.IsHovered <- true)
@@ -500,7 +591,7 @@ type Card() =
 
                     ({
                         Class = "primary-side"
-                        Style = $"color: {cardVisuals.PrimaryTextColor}; background-color: {cardVisuals.ThemeColor};"
+                        Style = $"color: {cardVisuals.PrimaryTextColor}; background-color: {cardVisuals.ThemeColor}; border: 2px solid {cardVisuals.PrimaryTextColor};"
                         ActiveEdge = this.ActiveEdge
                         Rotation = this.Rotation
                         Type = this.Data.Type
@@ -550,4 +641,8 @@ type Card() =
             // Tints the whole card red on hover when it's deletable in delete mode - pointer
             // events pass straight through (see CSS) so it never blocks the click beneath it.
             div { attr.``class`` "delete-overlay" }
+
+            // Same mechanism as delete-overlay above, tinted via .extractable instead - a
+            // distinct color (see Card.bolero.css) so it doesn't read as "danger" like delete's.
+            div { attr.``class`` "extract-overlay" }
         }
