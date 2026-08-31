@@ -4,6 +4,7 @@ open System
 open System.Collections.Generic
 open Bolero
 open Bolero.Html
+open FunSharp.Common
 open LoreBuilder
 open LoreBuilder.Components
 open LoreBuilder.Model
@@ -11,7 +12,6 @@ open Microsoft.AspNetCore.Components
 open Microsoft.AspNetCore.Components.Web
 open Microsoft.Extensions.Logging
 open Microsoft.JSInterop
-open Plk.Blazor.DragDrop
 
 
 type private HomeModel = {
@@ -22,60 +22,56 @@ type private HomeModel = {
     DraggedCard: Card option
     IsPanelOpen: bool
     // While true, clicking a removable card deletes it instead of flipping it (see
-    // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button. Mutually
-    // exclusive with IsExtractionMode (turning one on turns the other off).
+    // Card.IsDeleteMode) - toggled manually, on and off, via the activity-bar button.
     IsDeleteMode: bool
-    // While true, clicking an eligible (Outer) card extracts it into a brand-new cluster of its
-    // own (see Card.IsExtractionMode) - toggled via its own activity-bar button.
-    IsExtractionMode: bool
+    // Which canvas (root or a sub-canvas) is currently mounted/visible - the ancestor chain up to
+    // root is derived on demand from ParentLink (see CanvasTree.breadcrumbTrail) rather than kept
+    // as its own separate navigation stack.
+    ActiveCanvasId: Guid
     // The cluster currently being freely repositioned by the user (if any), and the
     // mouse/position it started from - used to compute the live position on every mousemove.
+    // Always refers to a cluster on the *currently active* canvas - dragging can't survive a
+    // navigation since that's not reachable through normal interaction (dive-in/extraction only
+    // fire on a plain click, never mid-drag).
     DraggingClusterId: Guid option
     DragStartMouseX: float
     DragStartMouseY: float
     DragStartX: float
     DragStartY: float
-    // The canvas's current zoom level (1.0 = 100%) - applied as a CSS transform:scale() on
-    // .canvas-content, so every other canvas-space calculation (cluster positions, drag deltas,
-    // drop-anywhere positioning) stays in one consistent, zoom-independent pixel space and only
-    // needs converting where it meets real screen pixels (see UpdateClusterDrag/OnCanvasDrop).
-    Zoom: float
-    // The screen point (and zoom level it was set at) a just-applied zoom change should keep
-    // visually anchored - set by ZoomBy, consumed by OnAfterRenderAsync once the DOM actually
-    // reflects the new Zoom's CSS transform (adjusting scroll position any earlier would get
-    // clamped to the stale, pre-zoom scrollable range).
-    PendingZoomAnchor: (float * float * float) option
 }
 
 type Home() =
     inherit Component()
 
+    // Guid.NewGuid() never produces Guid.Empty, so this is safe as a permanent sentinel for "the
+    // one root canvas" - every other canvas id is randomly generated.
+    let rootCanvasId = Guid.Empty
+
+    let canvases = Dictionary<Guid, CanvasState>()
+    do canvases[rootCanvasId] <- CanvasState.createRoot rootCanvasId
+
     let mutable model = {
         DraggedCard = None
         IsPanelOpen = true
         IsDeleteMode = false
-        IsExtractionMode = false
+        ActiveCanvasId = rootCanvasId
         DraggingClusterId = None
         DragStartMouseX = 0.0
         DragStartMouseY = 0.0
         DragStartX = 0.0
         DragStartY = 0.0
-        Zoom = 1.0
-        PendingZoomAnchor = None
     }
 
-    let minZoom = 0.25
-    let maxZoom = 2.0
-    let zoomStep = 0.1
-
-    // Each cluster's reserved box size, and the point the empty canvas is centered on before
-    // any cluster exists (used only as a fallback for sizing the background dropzone - see the
-    // minX/maxX/minY/maxY fallback in Render()).
+    // Each cluster's reserved box size, and the fixed spot every extracted cluster's sub-canvas
+    // starts it at - the origin, not offset by a cellSize margin the way a drop-anywhere cluster
+    // on root would be, since a sub-canvas never holds anything else to leave room around (see
+    // OnExtractCard) and this keeps its one cluster's whole footprint within a typical viewport
+    // with no scrollbar needed, matching Canvas.fs's own "no clusters yet" root fallback.
     let cellSize = 550.0
-    let startPosition = (cellSize, cellSize)
+    let startPosition = (0.0, 0.0)
 
     // A freshly drop-anywhere-created cluster's footprint before LoreCluster's own
-    // OnAfterRender has had a chance to report its real one (see clusterFootprints below) - it
+    // OnAfterRender has had a chance to report its real one (see OnFootprintChanged below) - it
     // always starts with just a primary card, so this matches LoreCluster.ComputeMargin's
     // result for that exact case (270 base + 2*60 primary-only margin).
     let primaryOnlyFootprint = 390.0
@@ -85,52 +81,6 @@ type Home() =
     // 2*(60 primary margin + 40 an-inner-card-exists margin) = 470).
     let primaryPlusInnerFootprint = 470.0
 
-    // Every known cluster's absolute pixel position (its cellSize x cellSize reserved box's
-    // top-left corner), keyed by a stable id rather than a grid cell - dragging and
-    // drop-anywhere both produce arbitrary free-form coordinates. Kept outside the HomeModel
-    // record (like LoreCluster's own `cards`/`cardUiStates`) since it's mutated on every
-    // mousemove while dragging. Starts empty - every cluster is created via drop-anywhere
-    // (OnCanvasDrop), never auto-spawned.
-    let clusterPositions = Dictionary<Guid, float * float>()
-
-    // Each known cluster's actual current visual footprint in pixels, reported by its own
-    // LoreCluster via OnFootprintChanged - lets the overlap check below react to what's really
-    // drawn (a bare primary card vs. one fully decorated with inner/outer cards) instead of
-    // reserving every cluster's full cellSize box regardless of its content.
-    let clusterFootprints = Dictionary<Guid, float>()
-
-    // Seeds a newly drop-anywhere-created cluster's primary card, read once by LoreCluster at
-    // its own initialization (LoreCluster.InitialPrimaryCard).
-    let initialCards = Dictionary<Guid, Card>()
-
-    // Seeds an extracted cluster's one auto-attached Inner Modifier card and which direction it
-    // faces, read once by LoreCluster at its own initialization (LoreCluster.InitialInnerCard).
-    let initialInnerCards = Dictionary<Guid, ClusterPosition * Card>()
-
-    // Seeds an extracted cluster's Primary Rotation (preserving whichever cue was active on the
-    // source Outer card), read once by LoreCluster at its own initialization
-    // (LoreCluster.InitialPrimaryRotation) - see LoreCluster.fs's OnExtractCard doc comment.
-    let initialPrimaryRotations = Dictionary<Guid, int>()
-
-    // Maps an extracted cluster's id to the (source cluster id, source position) it was
-    // extracted from - lets lockedPositionsFor (below) tell a source cluster which of its own
-    // positions still have a *live* extraction, so LoreCluster can keep that position's rotation
-    // locked (see its own LockedPositions doc comment) for exactly as long as the extracted
-    // cluster still exists. Removed in OnClusterEmptied when the extracted cluster is deleted -
-    // nothing else needs to happen for the source to unlock again, since every LoreCluster gets
-    // handed a freshly-recomputed LockedPositions on the very next render regardless.
-    let extractionSources = Dictionary<Guid, Guid * ClusterPosition>()
-
-    let lockedPositionsFor sourceId =
-        extractionSources.Values
-        |> Seq.choose (fun (sid, position) -> if sid = sourceId then Some position else None)
-        |> Set.ofSeq
-
-    let footprintOf id =
-        match clusterFootprints.TryGetValue id with
-        | true, footprint -> footprint
-        | false, _ -> primaryOnlyFootprint
-
     // Both positions are each cluster's box top-left corner, but the box's actual drawn content
     // is centered within it (see cellSize's doc comment) - compare true visual centers against
     // the sum of each cluster's own half-footprint, not a flat shared threshold.
@@ -139,19 +89,29 @@ type Home() =
         abs ((xA + cellSize / 2.0) - (xB + cellSize / 2.0)) < halfSum
         && abs ((yA + cellSize / 2.0) - (yB + cellSize / 2.0)) < halfSum
 
-    let wouldOverlapAny (excludeId: Guid option) (candidateFootprint: float) candidate =
-        clusterPositions
+    let footprintOf (canvas: CanvasState) id =
+        match canvas.ClusterFootprints.TryGetValue id with
+        | true, footprint -> footprint
+        | false, _ -> primaryOnlyFootprint
+
+    let wouldOverlapAny (canvas: CanvasState) (excludeId: Guid option) (candidateFootprint: float) candidate =
+        canvas.ClusterPositions
         |> Seq.exists(fun pair ->
-            Some pair.Key <> excludeId && overlaps candidateFootprint candidate (footprintOf pair.Key) pair.Value)
+            Some pair.Key <> excludeId && overlaps candidateFootprint candidate (footprintOf canvas pair.Key) pair.Value)
 
-    // Bound to .canvas-area (the scrollable container) so canvas.js can convert a drop's
-    // viewport-relative coordinates into coordinates relative to that container's own content.
-    let canvasRef = HtmlRef()
+    let zoomStep = 0.1
 
-    // Held so JS can call back into this component (loreBuilderCanvas.registerWheelZoom) and
+    // One entry per ever-mounted Canvas instance, registered by each one via its own
+    // OnZoomHandlerReady callback right after it first mounts (see Components/Canvas.fs) - lets
+    // the zoom +/- buttons below, which live in this activity-bar (not floated on the canvas
+    // itself), trigger a button-anchored zoom on whichever canvas is currently active without
+    // Bolero exposing a direct component-reference mechanism.
+    let zoomHandlers = Dictionary<Guid, float -> unit>()
+
+    // Held so JS can call back into this component (loreBuilderCanvas.registerEscapeKey) and
     // disposed of properly when the component goes away - standard Blazor JS-interop hygiene for
     // a reference JS itself holds onto.
-    let mutable wheelZoomDotNetRef: DotNetObjectReference<Home> option = None
+    let mutable escapeKeyDotNetRef: DotNetObjectReference<Home> option = None
 
     override _.CssScope = CssScopes.LoreBuilder
 
@@ -165,32 +125,51 @@ type Home() =
 
     member this.TriggerReRender() = this.StateHasChanged()
 
+    member private this.ActiveCanvas = canvases[model.ActiveCanvasId]
+
     // Removing the primary card leaves the cluster with no cards at all (see
     // LoreCluster.OnClusterEmptied's doc comment) - drop the whole reserved position rather
-    // than keeping an empty, re-fillable slot around.
-    member this.OnClusterEmptied(id: Guid) =
+    // than keeping an empty, re-fillable slot around. A now-empty sub-canvas (which, by
+    // construction, only ever held that one cluster) is torn down entirely and its parent
+    // position unlocked - see CanvasTree.removeEmptySubCanvas.
+    member this.OnClusterEmptied (canvasId: Guid) (clusterId: Guid) =
 
-        clusterPositions.Remove id |> ignore
-        clusterFootprints.Remove id |> ignore
-        initialCards.Remove id |> ignore
-        initialInnerCards.Remove id |> ignore
-        initialPrimaryRotations.Remove id |> ignore
-        extractionSources.Remove id |> ignore
-        this.TriggerReRender()
+        match canvases.TryGetValue canvasId with
+        | false, _ -> ()
+        | true, canvas ->
+            canvas.ClusterPositions.Remove clusterId |> ignore
+            canvas.ClusterFootprints.Remove clusterId |> ignore
+            canvas.InitialCards.Remove clusterId |> ignore
+            canvas.InitialInnerCards.Remove clusterId |> ignore
+            canvas.InitialPrimaryRotations.Remove clusterId |> ignore
+
+            match CanvasTree.removeEmptySubCanvas canvases canvasId model.ActiveCanvasId with
+            | Some newActiveCanvasId -> model <- { model with ActiveCanvasId = newActiveCanvasId }
+            | None -> ()
+
+            // A sub-canvas that removeEmptySubCanvas just tore down also drops out of the
+            // keep-alive render loop for good (see Render()'s own doc comment) - its registered
+            // zoom handler would otherwise sit in zoomHandlers forever, unreachable.
+            if not (canvases.ContainsKey canvasId) then
+                zoomHandlers.Remove canvasId |> ignore
+
+            this.TriggerReRender()
 
     // A cluster's own footprint doesn't need a re-render just to be recorded - it's only
     // consulted on-demand by the overlap check during a later drag/drop.
-    member this.OnFootprintChanged (id: Guid) (footprint: float) =
-        clusterFootprints[id] <- footprint
+    member this.OnFootprintChanged (canvasId: Guid) (clusterId: Guid) (footprint: float) =
+        match canvases.TryGetValue canvasId with
+        | true, canvas -> canvas.ClusterFootprints[clusterId] <- footprint
+        | false, _ -> ()
 
-    member this.StartClusterDrag (id: Guid) (e: MouseEventArgs) =
+    member this.StartClusterDrag (clusterId: Guid) (e: MouseEventArgs) =
 
-        match clusterPositions.TryGetValue id with
+        match this.ActiveCanvas.ClusterPositions.TryGetValue clusterId with
         | false, _ -> ()
         | true, (x, y) ->
             model <- {
                 model with
-                    DraggingClusterId = Some id
+                    DraggingClusterId = Some clusterId
                     DragStartMouseX = e.ClientX
                     DragStartMouseY = e.ClientY
                     DragStartX = x
@@ -204,17 +183,19 @@ type Home() =
         match model.DraggingClusterId with
         | None -> ()
         | Some id ->
-            // e.ClientX/Y deltas are screen pixels - divide by Zoom to get the equivalent
-            // canvas-space move (a screen-pixel drag covers less canvas-space distance when
-            // zoomed in, more when zoomed out).
-            let deltaX = (e.ClientX - model.DragStartMouseX) / model.Zoom
-            let deltaY = (e.ClientY - model.DragStartMouseY) / model.Zoom
+            let canvas = this.ActiveCanvas
+
+            // e.ClientX/Y deltas are screen pixels - divide by the active canvas's own current
+            // Zoom to get the equivalent canvas-space move (a screen-pixel drag covers less
+            // canvas-space distance when zoomed in, more when zoomed out).
+            let deltaX = (e.ClientX - model.DragStartMouseX) / canvas.Zoom
+            let deltaY = (e.ClientY - model.DragStartMouseY) / canvas.Zoom
             let candidate = (model.DragStartX + deltaX, model.DragStartY + deltaY)
 
             // Overlapping the target simply keeps the cluster at its last valid position for
             // this tick rather than any push/slide resolution - the next mousemove tries again.
-            if not (wouldOverlapAny (Some id) (footprintOf id) candidate) then
-                clusterPositions[id] <- candidate
+            if not (wouldOverlapAny canvas (Some id) (footprintOf canvas id) candidate) then
+                canvas.ClusterPositions[id] <- candidate
                 this.TriggerReRender()
 
     member this.EndClusterDrag() =
@@ -223,141 +204,160 @@ type Home() =
             model <- { model with DraggingClusterId = None }
             this.TriggerReRender()
 
-    // Changes Zoom by delta (clamped to [minZoom, maxZoom]), anchored so (clientX, clientY) -
-    // a screen point, from either a wheel event's cursor position or a zoom button's computed
-    // viewport-center - keeps pointing at the same canvas-space location once OnAfterRenderAsync
-    // applies the compensating scroll adjustment.
-    member this.ZoomBy (delta: float) (clientX: float) (clientY: float) =
+    // Reports the active canvas's own Zoom change back into its CanvasState - no re-render
+    // needed, the mounted Canvas already repaints itself.
+    member this.OnZoomChanged (canvasId: Guid) (zoom: float) =
+        match canvases.TryGetValue canvasId with
+        | true, canvas -> canvas.Zoom <- zoom
+        | false, _ -> ()
 
-        let oldZoom = model.Zoom
-        let newZoom = System.Math.Clamp(oldZoom + delta, minZoom, maxZoom)
+    // Records the given canvas's own button-triggered-zoom closure once it reports itself ready
+    // (see Canvas.fs's OnZoomHandlerReady) - looked up by the activity-bar's zoom +/- buttons
+    // below, keyed on whichever canvas is currently active.
+    member this.OnZoomHandlerReady (canvasId: Guid) (handler: float -> unit) =
+        zoomHandlers[canvasId] <- handler
 
-        if newZoom <> oldZoom then
-            model <- { model with Zoom = newZoom; PendingZoomAnchor = Some(clientX, clientY, oldZoom) }
+    member this.ZoomActiveCanvas(delta: float) =
+        match zoomHandlers.TryGetValue model.ActiveCanvasId with
+        | true, handler -> handler delta
+        | false, _ -> ()
+
+    // Drop-anywhere: a card dropped onto empty canvas space (i.e. not caught by any existing
+    // cluster's own dropzone, which sits above this one) starts a brand new, unconnected
+    // cluster right where it landed. Only ever fires for the root canvas - Canvas.fs only renders
+    // the background dropzone that triggers this when CanvasState.ParentLink is None.
+    member this.OnCanvasDrop (canvasId: Guid) (card: Card, canvasX: float, canvasY: float) =
+
+        match canvases.TryGetValue canvasId with
+        | false, _ -> ()
+        | true, canvas ->
+            // ClusterPositions holds each cluster's box top-left corner, but the drop point is
+            // where the card visually landed - center the new box on that point (half a cell
+            // size back in each direction) rather than anchoring its corner there, so the
+            // cluster actually appears where it was dropped.
+            let candidate = (canvasX - cellSize / 2.0, canvasY - cellSize / 2.0)
+
+            if not (wouldOverlapAny canvas None primaryOnlyFootprint candidate) then
+                let id = Guid.NewGuid()
+                canvas.ClusterPositions[id] <- candidate
+                canvas.InitialCards[id] <- card
+                this.TriggerReRender()
+
+    // Extraction: copies an eligible Outer card (see LoreCluster's canBeExtracted) into a
+    // brand-new cluster on its own dedicated sub-canvas, auto-attaching a random Modifier card to
+    // its Inner_Bottom slot (facing back toward the source, matching this cluster's own default
+    // tie-break direction) - the source cluster/card is left untouched. Auto-navigates into the
+    // new sub-canvas once created.
+    member this.OnExtractCard
+        (sourceCanvasId: Guid)
+        (sourceClusterId: Guid)
+        (sourcePosition: ClusterPosition)
+        (card: Card)
+        (primaryRotation: int)
+        =
+
+        match canvases.TryGetValue sourceCanvasId with
+        | false, _ -> ()
+        | true, sourceCanvas ->
+            let newCanvasId = Guid.NewGuid()
+            let newClusterId = Guid.NewGuid()
+            let innerPosition = ClusterPosition.Inner_Bottom
+
+            let newCanvas =
+                CanvasState.createSubCanvas
+                    newCanvasId
+                    sourceCanvasId
+                    sourceClusterId
+                    sourcePosition
+                    newClusterId
+                    startPosition
+                    (Card.copy card)
+                    primaryRotation
+                    innerPosition
+                    (Utils.randomModifierCard ())
+                    primaryPlusInnerFootprint
+
+            canvases[newCanvasId] <- newCanvas
+            sourceCanvas.ChildCanvasOf[(sourceClusterId, sourcePosition)] <- newCanvasId
+
+            model <- { model with ActiveCanvasId = newCanvasId }
+
             this.TriggerReRender()
 
-    // A zoom button click has no cursor position of its own to anchor on - use the canvas
-    // viewport's own center instead, so it zooms toward whatever's currently in view.
-    member this.ZoomButtonClicked(delta: float) =
+    // Navigates into the sub-canvas that was spawned from this exact (clusterId, position) - see
+    // LoreCluster's canDiveIn.
+    member this.OnDiveIn (canvasId: Guid) (clusterId: Guid) (position: ClusterPosition) =
 
-        match canvasRef.Value with
+        match canvases.TryGetValue canvasId with
+        | false, _ -> ()
+        | true, canvas ->
+            match canvas.ChildCanvasOf.TryGetValue((clusterId, position)) with
+            | true, childCanvasId ->
+                model <- { model with ActiveCanvasId = childCanvasId }
+                this.TriggerReRender()
+            | false, _ -> ()
+
+    member this.NavigateTo (canvasId: Guid) =
+        if canvases.ContainsKey canvasId && model.ActiveCanvasId <> canvasId then
+            model <- { model with ActiveCanvasId = canvasId }
+            this.TriggerReRender()
+
+    // The breadcrumb label for one canvas - root shows a fixed literal; every other level shows
+    // its CardType icon plus whichever cue was active on the source Outer card at the moment of
+    // extraction (same active-cue computation LoreCluster.fs already does for Primary), falling
+    // back to just the type name if that cue has no Simple/Complex text to show.
+    member private this.BreadcrumbLabel(canvasId: Guid) =
+
+        match canvases.TryGetValue canvasId with
+        | false, _ -> CardType.Unknown, "?"
+        | true, canvas ->
+            match canvas.SpawnedFromCard, canvas.SpawnedFromRotation with
+            | Some card, Some rotation ->
+                let text =
+                    match CardHelpers.activeCue card.PrimarySide CardEdge.Bottom rotation with
+                    | Some(Cue.Simple s) -> s
+                    | Some(Cue.Complex c) -> c.Text
+                    | _ -> Union.toString card.Type
+
+                card.Type, text
+            | _ -> CardType.Unknown, "Root"
+
+    [<JSInvokable>]
+    member this.OnEscapePressed() =
+        match this.ActiveCanvas.ParentLink with
+        | Some(parentCanvasId, _, _) ->
+            model <- { model with ActiveCanvasId = parentCanvasId }
+            this.TriggerReRender()
         | None -> ()
-        | Some element ->
-            task {
-                let! center =
-                    this.JSRuntime.InvokeAsync<float[]>("loreBuilderCanvas.getCenter", element).AsTask()
-
-                this.ZoomBy delta center.[0] center.[1]
-            }
-            |> ignore
 
     override this.OnAfterRenderAsync(firstRender: bool) =
         task {
             if firstRender then
-                match canvasRef.Value with
-                | Some element ->
-                    let dotNetRef = DotNetObjectReference.Create(this)
-                    wheelZoomDotNetRef <- Some dotNetRef
-
-                    do!
-                        this.JSRuntime
-                            .InvokeVoidAsync("loreBuilderCanvas.registerWheelZoom", element, dotNetRef)
-                            .AsTask()
-                | None -> ()
-
-            match model.PendingZoomAnchor, canvasRef.Value with
-            | Some(clientX, clientY, oldZoom), Some element ->
-                model <- { model with PendingZoomAnchor = None }
+                let dotNetRef = DotNetObjectReference.Create(this)
+                escapeKeyDotNetRef <- Some dotNetRef
 
                 do!
                     this.JSRuntime
-                        .InvokeVoidAsync("loreBuilderCanvas.zoomAt", element, clientX, clientY, oldZoom, model.Zoom)
+                        .InvokeVoidAsync("loreBuilderCanvas.registerEscapeKey", dotNetRef)
                         .AsTask()
-            | Some _, None -> model <- { model with PendingZoomAnchor = None }
-            | None, _ -> ()
         }
         :> System.Threading.Tasks.Task
 
-    // Called from JS (loreBuilderCanvas.registerWheelZoom) whenever a Ctrl+wheel event lands on
-    // the canvas - the actual preventDefault() happens synchronously in JS, since Blazor's own
-    // event dispatch is too slow to reliably beat the browser's native page-zoom handling.
-    [<JSInvokable>]
-    member this.OnCanvasWheelZoom(deltaY: float, clientX: float, clientY: float) =
-        this.ZoomBy (if deltaY < 0.0 then zoomStep else -zoomStep) clientX clientY
-
     interface IDisposable with
         member _.Dispose() =
-            wheelZoomDotNetRef |> Option.iter (fun r -> r.Dispose())
-
-    // Drop-anywhere: a card dropped onto empty canvas space (i.e. not caught by any existing
-    // cluster's own dropzone, which sits above this one) starts a brand new, unconnected
-    // cluster right where it landed.
-    member this.OnCanvasDrop (card: Card, clientX: float, clientY: float) =
-
-        match canvasRef.Value with
-        | None -> ()
-        | Some element ->
-            task {
-                try
-                    let! point =
-                        this.JSRuntime
-                            .InvokeAsync<float[]>("loreBuilderCanvas.toContentRelative", element, clientX, clientY)
-                            .AsTask()
-
-                    // point is content-relative in screen (post-scale) pixels - divide by Zoom to
-                    // get the equivalent canvas-space position.
-                    let canvasX = point.[0] / model.Zoom
-                    let canvasY = point.[1] / model.Zoom
-
-                    // clusterPositions holds each cluster's box top-left corner, but the drop
-                    // point is where the card visually landed - center the new box on that
-                    // point (half a cell size back in each direction) rather than anchoring its
-                    // corner there, so the cluster actually appears where it was dropped.
-                    let candidate = (canvasX - cellSize / 2.0, canvasY - cellSize / 2.0)
-
-                    if not (wouldOverlapAny None primaryOnlyFootprint candidate) then
-                        let id = Guid.NewGuid()
-                        clusterPositions[id] <- candidate
-                        initialCards[id] <- card
-                        this.TriggerReRender()
-                with ex ->
-                    // Not expected to fail in normal operation - logged rather than silently
-                    // swallowed since this task is fire-and-forget from the caller's side.
-                    this.Logger.LogError(ex, "OnCanvasDrop failed")
-            }
-            |> ignore
-
-    // Extraction: copies an eligible Outer card (see LoreCluster's canBeExtracted) into a
-    // brand-new, independent cluster placed nearby - the source cluster/card is left untouched.
-    // The new cluster also gets a random Modifier card auto-attached to whichever Inner slot
-    // faces back toward the source, when a nearby free spot allows it (see
-    // ClusterPlacement.findExtractionSpot).
-    member this.OnExtractCard (sourceId: Guid) (sourcePosition: ClusterPosition) (card: Card) (primaryRotation: int) =
-
-        match clusterPositions.TryGetValue sourceId with
-        | false, _ -> ()
-        | true, sourcePos ->
-            match ClusterPlacement.findExtractionSpot (wouldOverlapAny None) cellSize primaryPlusInnerFootprint sourcePos with
-            | None -> ()
-            | Some(candidate, innerPosition) ->
-                let id = Guid.NewGuid()
-                clusterPositions[id] <- candidate
-                clusterFootprints[id] <- primaryPlusInnerFootprint
-                initialCards[id] <- Card.copy card
-                initialInnerCards[id] <- (innerPosition, Utils.randomModifierCard ())
-                initialPrimaryRotations[id] <- primaryRotation
-                extractionSources[id] <- (sourceId, sourcePosition)
-                model <- { model with IsExtractionMode = false }
-                this.TriggerReRender()
+            escapeKeyDotNetRef |> Option.iter (fun r -> r.Dispose())
 
     override this.Render() =
+
+        let activeCanvasId = model.ActiveCanvasId
+        let trail = CanvasTree.breadcrumbTrail canvases activeCanvasId
 
         div {
             attr.``class`` "home-layout"
 
-            // Listening this high up (rather than just on .canvas-area) means a fast drag that
-            // briefly carries the cursor over the sidebar/activity-bar still keeps tracking -
-            // only leaving the browser window entirely would lose it.
+            // Listening this high up (rather than just on the mounted Canvas's own element) means
+            // a fast drag that briefly carries the cursor over the sidebar/activity-bar still
+            // keeps tracking - only leaving the browser window entirely would lose it.
             on.mousemove (fun e -> this.UpdateClusterDrag e)
             on.mouseup (fun _ -> this.EndClusterDrag())
 
@@ -378,40 +378,22 @@ type Home() =
                     attr.``class`` (if model.IsDeleteMode then "activity-bar-icon active" else "activity-bar-icon")
 
                     on.click (fun _ ->
-                        model <- {
-                            model with
-                                IsDeleteMode = not model.IsDeleteMode
-                                IsExtractionMode = false
-                        }
+                        model <- { model with IsDeleteMode = not model.IsDeleteMode }
                         this.TriggerReRender())
 
                     i { attr.``class`` "fa-solid fa-trash" }
                 }
 
                 div {
-                    attr.``class`` (if model.IsExtractionMode then "activity-bar-icon active" else "activity-bar-icon")
-
-                    on.click (fun _ ->
-                        model <- {
-                            model with
-                                IsExtractionMode = not model.IsExtractionMode
-                                IsDeleteMode = false
-                        }
-                        this.TriggerReRender())
-
-                    i { attr.``class`` "fa-solid fa-clone" }
-                }
-
-                div {
                     attr.``class`` "activity-bar-icon"
-                    on.click (fun _ -> this.ZoomButtonClicked zoomStep)
+                    on.click (fun _ -> this.ZoomActiveCanvas zoomStep)
 
                     i { attr.``class`` "fa-solid fa-magnifying-glass-plus" }
                 }
 
                 div {
                     attr.``class`` "activity-bar-icon"
-                    on.click (fun _ -> this.ZoomButtonClicked -zoomStep)
+                    on.click (fun _ -> this.ZoomActiveCanvas -zoomStep)
 
                     i { attr.``class`` "fa-solid fa-magnifying-glass-minus" }
                 }
@@ -443,84 +425,83 @@ type Home() =
                 }
             }
 
+            // Always rendered (visibility toggled via CSS) rather than structurally
+            // included/excluded with a bare `if` - Blazor's diffing matches the canvas keep-alive
+            // loop below by key, but that matching only works if this loop lands at a *stable*
+            // tree position across renders. A conditional sibling ahead of it that comes and goes
+            // (as this would if gated by `if trail.Length > 1 then`) shifts that position exactly
+            // when navigation state changes, which is exactly when the loop most needs to still
+            // match up correctly - so every ever-visited canvas's own LoreCluster state (every
+            // card tugged onto it) got silently destroyed and recreated on the very navigation
+            // this whole keep-alive scheme exists to survive. Hidden at root (trail length 1) so
+            // root's own UI still looks pixel-identical to before this feature existed.
             div {
-                attr.``class`` "canvas-area"
+                attr.``class`` "breadcrumb-bar"
+                attr.style (if trail.Length > 1 then "" else "display: none;")
 
-                // Ctrl+wheel zoom is wired up via a raw JS listener (loreBuilderCanvas.registerWheelZoom,
-                // registered in OnAfterRenderAsync) instead of Bolero's on.wheel/on.preventDefault -
-                // see OnCanvasWheelZoom's doc comment for why.
-                canvasRef
-
-                let pointerEventsClass = if model.DraggedCard.IsSome then " auto-pointer" else " no-pointer"
-
-                // Sized to the actual extent of the known clusters (plus one cellSize of margin
-                // on every side, enough to catch a drop-anywhere placed just outside them) rather
-                // than a large fixed area - a fixed size would force .canvas-area's scrollable
-                // region to that size regardless of how few clusters actually exist. Falls back
-                // to startPosition when the last cluster has just been deleted (OnClusterEmptied
-                // can leave clusterPositions empty), so there's still a background dropzone to
-                // drop a card on and start over.
-                let minX, maxX, minY, maxY =
-                    if clusterPositions.Count = 0 then
-                        let x, y = startPosition
-                        x, x, y, y
-                    else
-                        clusterPositions.Values |> Seq.map fst |> Seq.min,
-                        clusterPositions.Values |> Seq.map fst |> Seq.max,
-                        clusterPositions.Values |> Seq.map snd |> Seq.min,
-                        clusterPositions.Values |> Seq.map snd |> Seq.max
-
-                div {
-                    attr.``class`` "canvas-content"
-                    attr.style $"transform: scale({model.Zoom}); transform-origin: 0 0;"
-
-                    div {
-                        attr.``class`` $"canvas-background-dropzone{pointerEventsClass}"
-                        attr.style
-                            $"left: {minX - cellSize}px; top: {minY - cellSize}px; width: {maxX - minX + cellSize * 3.0}px; height: {maxY - minY + cellSize * 3.0}px;"
-
-                        comp<Dropzone<Card>> {
-                            "Items" => List<Card>()
-                            "Accepts" => Func<Card, Card, bool>(fun _ _ -> true)
-                            "OnItemDropAt" => Action<Card, double, double>(fun card x y -> this.OnCanvasDrop(card, x, y))
-                        }
-                    }
-
-                    for pair in clusterPositions do
-                        let id = pair.Key
-                        let x, y = pair.Value
+                trail
+                    |> List.mapi(fun idx canvasId ->
+                        let cardType, label = this.BreadcrumbLabel canvasId
+                        let isLast = idx = trail.Length - 1
 
                         div {
-                            attr.key id
-                            attr.``class`` "canvas-cell"
-                            attr.style $"left: {int x}px; top: {int y}px; width: {cellSize}px; height: {cellSize}px;"
+                            attr.key canvasId
+                            attr.``class`` (if isLast then "breadcrumb-crumb current" else "breadcrumb-crumb")
+                            attr.title label
 
-                            comp<LoreCluster> {
-                                "DropzonesAreActive" => model.DraggedCard.IsSome
-                                "DraggedCard" => model.DraggedCard
-                                "IsDeleteMode" => model.IsDeleteMode
-                                "IsExtractionMode" => model.IsExtractionMode
-                                "InitialPrimaryCard" =>
-                                    (match initialCards.TryGetValue id with
-                                     | true, card -> Some card
-                                     | false, _ -> None)
-                                "InitialInnerCard" =>
-                                    (match initialInnerCards.TryGetValue id with
-                                     | true, positionAndCard -> Some positionAndCard
-                                     | false, _ -> None)
-                                "InitialPrimaryRotation" =>
-                                    (match initialPrimaryRotations.TryGetValue id with
-                                     | true, rotation -> Some rotation
-                                     | false, _ -> None)
-                                "LockedPositions" => lockedPositionsFor id
-                                "OnClusterEmptied" => fun () -> this.OnClusterEmptied id
-                                "OnFootprintChanged" => fun (footprint: float) -> this.OnFootprintChanged id footprint
-                                "OnPrimaryMouseDown" => fun (e: MouseEventArgs) -> this.StartClusterDrag id e
-                                "OnExtractCard" =>
-                                    fun (position: ClusterPosition) (card: Card) (rotation: int) ->
-                                        this.OnExtractCard id position card rotation
-                            }
+                            // Always attached rather than only when not isLast - clicking the
+                            // current (last) crumb just navigates to itself, a no-op already
+                            // handled by NavigateTo's own guard, so there's no need for a
+                            // conditional Attr here (which Bolero's div CE can't type-check
+                            // without a matching else branch).
+                            on.click (fun _ -> this.NavigateTo canvasId)
+
+                            if cardType <> CardType.Unknown then
+                                i { attr.``class`` $"fa-solid {CardType.icon cardType}" }
+
+                            text label
+
+                            if not isLast then
+                                i { attr.``class`` "fa-solid fa-chevron-right breadcrumb-separator" }
                         }
+                    )
+                    |> Utils.renderList
                 }
-            }
+
+            // Every ever-visited canvas stays mounted permanently (never remounted by attr.key on
+            // navigation) - each one's own LoreCluster instances hold significant local state
+            // (every card tugged onto them) that only lives in that component instance, so
+            // destroying and recreating it on every dive-in/breadcrumb navigation would silently
+            // lose it. Only the active one is actually visible; the rest sit at display:none,
+            // which stops their content from painting or receiving input but leaves their
+            // component instances (and this component's own JS registrations) alive. A canvas is
+            // only ever truly unmounted - dropping out of this loop entirely - when its
+            // CanvasState is removed from `canvases` for real, i.e. actual deletion (see
+            // OnClusterEmptied).
+            for pair in canvases do
+                let canvasId = pair.Key
+                let canvasState = pair.Value
+
+                div {
+                    attr.key canvasId
+                    attr.style (if canvasId = activeCanvasId then "" else "display: none;")
+
+                    comp<Canvas> {
+                        "CanvasState" => canvasState
+                        "DraggedCard" => model.DraggedCard
+                        "IsDeleteMode" => model.IsDeleteMode
+                        "InitialZoom" => canvasState.Zoom
+                        "OnZoomHandlerReady" => fun (handler: float -> unit) -> this.OnZoomHandlerReady canvasId handler
+                        "OnZoomChanged" => fun (zoom: float) -> this.OnZoomChanged canvasId zoom
+                        "OnCanvasDrop" => fun (card: Card, x: float, y: float) -> this.OnCanvasDrop canvasId (card, x, y)
+                        "OnClusterEmptied" => fun (clusterId: Guid) -> this.OnClusterEmptied canvasId clusterId
+                        "OnFootprintChanged" =>
+                            fun (clusterId: Guid) (footprint: float) -> this.OnFootprintChanged canvasId clusterId footprint
+                        "OnPrimaryMouseDown" => fun (clusterId: Guid) (e: MouseEventArgs) -> this.StartClusterDrag clusterId e
+                        "OnExtractCard" =>
+                            fun (clusterId: Guid) (position: ClusterPosition) (card: Card) (rotation: int) ->
+                                this.OnExtractCard canvasId clusterId position card rotation
+                        "OnDiveIn" => fun (clusterId: Guid) (position: ClusterPosition) -> this.OnDiveIn canvasId clusterId position
+                    }
+                }
         }

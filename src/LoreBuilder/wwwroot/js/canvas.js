@@ -37,6 +37,25 @@ window.loreBuilderCanvas = {
         element.scrollTop = contentY * ratio - cy;
     },
 
+    // Scrolls element so canvas-space point (canvasX, canvasY) - already scaled by zoom into
+    // element's own content-pixel space - ends up centered in its viewport. Used to center a
+    // freshly-shown sub-canvas on its own lone cluster (see Canvas.fs's OnAfterRenderAsync),
+    // since native scroll position isn't otherwise preserved when a canvas is hidden/shown again.
+    centerOn: function (element, canvasX, canvasY, zoom) {
+        const scaledX = canvasX * zoom;
+        const scaledY = canvasY * zoom;
+        element.scrollLeft = scaledX - element.clientWidth / 2;
+        element.scrollTop = scaledY - element.clientHeight / 2;
+    },
+
+    // element's own visible viewport size (excluding scrollbars), as [width, height] - used to
+    // size the empty-root background dropzone to exactly what's currently visible (see
+    // Canvas.fs's OnAfterRenderAsync), so a card can be dropped anywhere on screen rather than
+    // only within some fixed-size corner.
+    getViewportSize: function (element) {
+        return [element.clientWidth, element.clientHeight];
+    },
+
     // Registered directly (not through Bolero's on.wheel/on.preventDefault) because Blazor's own
     // event dispatch round-trip is too slow to reliably beat the browser's native, synchronous
     // Ctrl+wheel page-zoom handling - only a listener registered here, with {passive: false},
@@ -49,5 +68,16 @@ window.loreBuilderCanvas = {
                 dotNetHelper.invokeMethodAsync('OnCanvasWheelZoom', e.deltaY, e.clientX, e.clientY);
             }
         }, { passive: false });
+    },
+
+    // Registered once, window-level, so Escape steps the breadcrumb back one level regardless of
+    // which canvas element is currently mounted - same registration lifecycle as
+    // registerWheelZoom, just scoped to window instead of one element.
+    registerEscapeKey: function (dotNetHelper) {
+        window.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                dotNetHelper.invokeMethodAsync('OnEscapePressed');
+            }
+        });
     }
 };

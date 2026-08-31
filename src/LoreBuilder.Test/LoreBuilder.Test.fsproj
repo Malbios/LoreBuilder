@@ -15,7 +15,7 @@
     <ItemGroup>
         <Compile Include="CardTests.fs"/>
         <Compile Include="ClusterTests.fs"/>
-        <Compile Include="ClusterPlacementTests.fs"/>
+        <Compile Include="CanvasTreeTests.fs"/>
         <Compile Include="UtilsTests.fs"/>
         <Compile Include="BuildersTests.fs"/>
         <Compile Include="Program.fs"/>

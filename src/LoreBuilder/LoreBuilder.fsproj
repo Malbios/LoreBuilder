@@ -46,7 +46,8 @@
     <Compile Include="Model\Common.fs" />
     <Compile Include="Model\Card.fs" />
     <Compile Include="Model\Cluster.fs" />
-    <Compile Include="Model\ClusterPlacement.fs" />
+    <Compile Include="Model\CanvasState.fs" />
+    <Compile Include="Model\CanvasTree.fs" />
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Builders.fs" />
@@ -71,6 +72,8 @@
     <None Include="Components\CardStack.bolero.css" />
     <Compile Include="Components\LoreCluster.fs" />
     <None Include="Components\LoreCluster.bolero.css" />
+    <Compile Include="Components\Canvas.fs" />
+    <None Include="Components\Canvas.bolero.css" />
     <Compile Include="Pages\NotFound.fs" />
     <Compile Include="Pages\HoverTest.fs" />
     <Compile Include="Pages\CardTest.fs" />

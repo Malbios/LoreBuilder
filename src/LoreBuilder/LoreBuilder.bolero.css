@@ -107,54 +107,46 @@
     box-sizing: border-box;
 }
 
-/* Fills the entire .home-layout edge-to-edge - .activity-bar/.side-panel float on top of it
-   (see their own z-index/position) rather than sharing a flex row with it. */
-.canvas-area {
+/* Floats top-right - clear of .activity-bar (top-left) and .side-panel (left edge, whether open
+   or closed) so it never needs to coordinate layout with either. Hidden entirely at root (see
+   Home.fs's Render()), so root's own UI stays pixel-identical to before this existed. */
+.breadcrumb-bar {
     position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: auto;
+    top: 0;
+    right: 0;
+    z-index: 3;
 
-    border: 1px solid #999;
-    box-sizing: border-box;
-}
-
-/* Wraps the background dropzone and every canvas-cell so the zoom level (Home.fs's Zoom) scales
-   them together as one unit - everything inside stays in the same canvas-space pixel coordinates
-   regardless of zoom; only this wrapper's own transform changes how that's painted. */
-.canvas-content {
-    position: relative;
-}
-
-.canvas-cell {
-    position: absolute;
-    z-index: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    padding: 0.4rem 0.75rem;
+    max-width: calc(100% - 48px);
 
-    /* Purely a positioning wrapper (like .cluster-exterior one level in) - without this, its
-       full 550x550 box (including the empty flex padding around a smaller cluster, or an
-       entirely empty auto-spawned neighbor cell) swallows drops meant for
-       .canvas-background-dropzone underneath, since it sits above it (z-index 1 vs 0).
-       Interactive descendants (.primary, the per-slot dropzones) already opt back in with
-       their own pointer-events: auto. */
-    pointer-events: none;
+    background-color: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* Sits behind every .canvas-cell (its actual left/top/width/height are set inline in Home.fs,
-   sized to the current cluster extent) so a drop that lands on an actual cluster still reaches
-   that cluster's own dropzone first - only genuinely empty space falls through to this one,
-   which starts a brand new cluster wherever it was dropped. */
-.canvas-background-dropzone {
-    position: absolute;
-    z-index: 0;
+.breadcrumb-crumb {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    max-width: 12rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    font-size: 0.85rem;
+    cursor: pointer;
 }
 
-.canvas-background-dropzone.no-pointer {
-    pointer-events: none;
+.breadcrumb-crumb.current {
+    font-weight: bold;
+    cursor: default;
 }
 
-.canvas-background-dropzone.auto-pointer {
-    pointer-events: auto;
+.breadcrumb-separator {
+    margin: 0 0.35rem;
+    font-size: 0.7rem;
+    color: #999;
 }
+
