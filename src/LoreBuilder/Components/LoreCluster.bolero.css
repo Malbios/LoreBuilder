@@ -235,3 +235,62 @@
 .no-pointer {
     pointer-events: none;
 }
+
+/* Layered onto the same *-dropzone position/size classes the real dropzone would otherwise use
+   (see Render()'s own isAnySlot branch) - always clickable, not mode-gated or drag-driven, so it
+   reads as its own distinct "click to choose" affordance rather than a drag target. */
+.pick-one-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 2px dashed rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.55);
+
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.pick-one-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Covers a generous area around the cluster (not just .cluster-interior's own small box) so the
+   popover has room to show without being clipped - a child of .cluster-interior, not
+   .canvas-content, so it scales/pans together with this cluster rather than needing to escape to
+   a viewport-fixed position. */
+.card-picker-backdrop {
+    position: absolute;
+    inset: -400px;
+    z-index: 60;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+}
+
+.card-picker-popover {
+    display: flex;
+    gap: 1.5rem;
+
+    padding: 1.5rem;
+    border-radius: 12px;
+
+    background-color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.card-picker-candidate {
+    cursor: pointer;
+    border-radius: 12px;
+    transition: transform 0.15s ease;
+}
+
+.card-picker-candidate:hover {
+    transform: scale(1.05);
+}

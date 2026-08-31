@@ -57,6 +57,19 @@ module Utils =
         Factions.cards; Figures.cards; Events.cards; Locations.cards; Objects.cards; Creatures.cards; Materials.cards; Deities.cards; Emblems.cards; Modifiers.cards
     ]
 
+    // One random card per requested type, independently - a "pick one of two locations" slot
+    // (Logical.Any [location; location]) asks for this with the same type listed twice, and gets
+    // one independent roll per entry back (no distinctness guarantee, same as randomModifierCard
+    // above - every type's pool is a single card today, so this necessarily returns the same card
+    // twice for a repeated type until more data exists).
+    let randomCandidatesFor (types: CardType list) : Card list =
+        types
+        |> List.map (fun cardType ->
+            allCards
+            |> List.tryFind (fun pool -> pool |> List.tryHead |> Option.exists (fun card -> card.Type = cardType))
+            |> Option.map pickRandom
+            |> Option.defaultValue Card.empty)
+
     let renderList (nodes: Node list) =
         concat {
             for node in nodes do node

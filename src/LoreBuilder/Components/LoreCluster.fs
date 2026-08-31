@@ -81,10 +81,6 @@ type LoreCluster() =
     [<Parameter>]
     member val IsDeleteMode = false with get, set
 
-    // Forwarded to every card - see Card.IsExtractionMode's doc comment.
-    [<Parameter>]
-    member val IsExtractionMode = false with get, set
-
     [<Parameter>]
     member val Lore = "" with get, set
 
@@ -172,6 +168,12 @@ type LoreCluster() =
     [<Parameter>]
     member val OnPrimaryMouseDown: MouseEventArgs -> unit = ignore with get, set
 
+    // Fired when the user clicks an Outer card that's the source of a live extraction (see
+    // canDiveIn below) - navigates into that sub-canvas. Reports which position was clicked so
+    // Pages/Home.fs can look up which sub-canvas id LockedPositions itself was derived from.
+    [<Parameter>]
+    member val OnDiveIn: ClusterPosition -> unit = (fun _ -> ()) with get, set
+
     // Fired (after render, whenever it actually changes) with this cluster's current total
     // visual footprint in pixels - cluster-interior's fixed 270px plus twice ComputeMargin().
     // Lets Pages/Home.fs's overlap check use each cluster's real current size (a bare primary
@@ -186,6 +188,15 @@ type LoreCluster() =
     // onRotationChanged below) - separate from any individual card's own Rotation, which stays
     // exactly what it was.
     member val private ClusterRotation = 0 with get, set
+
+    // Which Outer slot's "pick one of several" popover is currently open (see Render()'s own
+    // isAnySlot) - None means closed. PickerCandidates is that slot's freshly-rolled set, shown in
+    // the popover; PickerSelect is that exact slot's own replaceCard closure, captured when the
+    // popover was opened so the popover itself (rendered once, outside the per-position loop)
+    // doesn't need to know which position it belongs to.
+    member val private OpenPickerPosition: ClusterPosition option = None with get, set
+    member val private PickerCandidates: Card list = [] with get, set
+    member val private PickerSelect: Card -> unit = ignore with get, set
 
     member private this.HasCard position =
         cards[position] <> Card.empty
@@ -343,13 +354,12 @@ type LoreCluster() =
             expansionsForInner (innerPositionFor position)
             |> Option.bind (Logical.slotTypes (slotIndexFor position))
 
-        // Primary intentionally stays droppable/replaceable even once filled (dropping a new
-        // primary card swaps it out) - Inner/Outer/Outer2 slots don't support replace-by-drop, so
-        // once filled their dropzone must stop showing/accepting drops entirely (the card has to
-        // be removed, e.g. via delete mode, before a new one can go there).
+        // Primary no longer supports replace-by-drop, same as Inner/Outer/Outer2 - once filled,
+        // its dropzone stops showing/accepting drops entirely, and the card has to be removed
+        // (e.g. via delete mode) before a new one can go there.
         let showDropzone position =
             match position with
-            | ClusterPosition.Primary -> noInnerCards
+            | ClusterPosition.Primary -> not (hasCard ClusterPosition.Primary)
 
             | ClusterPosition.Inner_Bottom
             | ClusterPosition.Inner_Left
@@ -376,7 +386,7 @@ type LoreCluster() =
 
             let acceptDrop (card: Card) _ = // droppedCard, target (target could be null)
                 match position with
-                | ClusterPosition.Primary -> true
+                | ClusterPosition.Primary -> not (hasCard position)
 
                 | ClusterPosition.Inner_Bottom
                 | ClusterPosition.Inner_Left
@@ -414,7 +424,46 @@ type LoreCluster() =
             let onDrop card = replaceCard card
 
             let onRemove () = replaceCard Card.empty
-            
+
+            // Every tugging spot except Primary picks by click now, not drag - Primary keeps
+            // ordinary drag-and-drop unconditionally (both for replacing it directly and for
+            // Pages/Home.fs's drop-anywhere new-cluster creation, neither of which this touches).
+            // The candidate type(s) offered:
+            // - Inner_*: whatever type Primary itself is (there's no Logical/Expansions
+            //   involved for Inner at all - it only ever has to match Primary's own type,
+            //   see acceptDrop above) - always exactly one candidate.
+            // - Outer_*/Outer2_*: slotTypesFor's own resolution of the inner card's Expansions,
+            //   already correct for One/Any/All alike (One/All: one type, one candidate each;
+            //   Any: one candidate per listed type, so a repeated type is where an actual choice
+            //   shows up - see this feature's original plan for the reasoning).
+            let pickTypes =
+                match position with
+                | ClusterPosition.Primary -> None
+                | ClusterPosition.Inner_Bottom
+                | ClusterPosition.Inner_Left
+                | ClusterPosition.Inner_Top
+                | ClusterPosition.Inner_Right ->
+                    if hasCard ClusterPosition.Primary then
+                        Some [ cards[ClusterPosition.Primary].Type ]
+                    else
+                        None
+                | _ -> slotTypesFor position
+
+            let isPickSlot = pickTypes.IsSome
+
+            // With exactly one candidate type there's no real choice to make - attach it directly
+            // instead of opening a popover just to force a second click confirming the only
+            // option. Only a genuine choice (2+ types, e.g. an Any slot with a repeated type)
+            // opens the popover.
+            let openPicker () =
+                match pickTypes |> Option.defaultValue [] with
+                | [ singleType ] -> LoreBuilder.Utils.randomCandidatesFor [ singleType ] |> List.head |> replaceCard
+                | types ->
+                    this.PickerCandidates <- LoreBuilder.Utils.randomCandidatesFor types
+                    this.PickerSelect <- replaceCard
+                    this.OpenPickerPosition <- Some position
+                    this.NotifyStateChanged()
+
             // Whether this position's dropzone would actually accept the card currently being
             // dragged (reusing acceptDrop, rather than duplicating its type-matching logic) - the
             // second argument mirrors "Accepts" below, which never uses it either. Falls back to
@@ -556,14 +605,23 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Top -> not (hasCard ClusterPosition.Outer_Top)
                 | ClusterPosition.Inner_Right -> not (hasCard ClusterPosition.Outer_Right)
 
-                // Unlike Inner->Outer (a genuine physical dependency - outer is tugged directly
-                // off inner's own back edge), Outer and Outer2 are independent siblings, each its
-                // own new card (see initialUiState's doc comment) - so Outer2 being attached
-                // doesn't block Outer from rotating or being removed, and vice versa.
+                // Once extracted from, an Outer card can't be removed either - its sub-canvas
+                // still exists and still depends on this exact card (its copy, and its rotation -
+                // see LockedPositions' own doc comment), so deleting it here would orphan that
+                // sub-canvas with no way back in. The user has to delete the sub-canvas's own
+                // cluster first (which unlocks this position again via Pages/Home.fs's deletion
+                // cascade) before this card can be removed.
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
-                | ClusterPosition.Outer_Right
+                | ClusterPosition.Outer_Right -> not (this.LockedPositions.Contains position)
+
+                // Unlike Inner->Outer (a genuine physical dependency - outer is tugged directly
+                // off inner's own back edge), Outer and Outer2 are independent siblings, each its
+                // own new card (see initialUiState's doc comment) - so Outer2 being attached
+                // doesn't block Outer from rotating or being removed, and vice versa. Outer2 can
+                // never itself be locked (only a filled Outer card can be extracted from - see
+                // canBeExtracted/canDiveIn below), so it needs no such check.
                 | ClusterPosition.Outer2_Bottom
                 | ClusterPosition.Outer2_Left
                 | ClusterPosition.Outer2_Top
@@ -572,37 +630,95 @@ type LoreCluster() =
             let canBeRotated =
                 match position with
                 | ClusterPosition.Primary -> true
+
+                // Deliberately NOT canBeRemoved's own Inner branches - rotating an Inner card
+                // changes which cue faces outward (see cardAndDropzone's own rotation math),
+                // which is what an attached Outer sibling's placement actually depends on, so
+                // that's the only thing that should block rotation here. Whether this exact card
+                // can be removed on its own is a separate question (canBeRemoved's "package deal
+                // with Primary" rule for the auto-attached Modifier) that has nothing to do with
+                // whether it's safe to rotate - conflating the two here previously left the
+                // auto-Modifier permanently unrotatable, since it can never be removed alone.
+                | ClusterPosition.Inner_Bottom -> not (hasCard ClusterPosition.Outer_Bottom)
+                | ClusterPosition.Inner_Left -> not (hasCard ClusterPosition.Outer_Left)
+                | ClusterPosition.Inner_Top -> not (hasCard ClusterPosition.Outer_Top)
+                | ClusterPosition.Inner_Right -> not (hasCard ClusterPosition.Outer_Right)
+
                 // Once a card has been extracted from, a new cluster's Modifier orientation
                 // depends on this exact card's rotation staying put (see LockedPositions' own
-                // doc comment) - unrelated to canBeRemoved, which stays unaffected (it can still
-                // be deleted, just not rotated).
+                // doc comment) - for a locked Outer card this is now implied by canBeRemoved
+                // itself already being false, but kept explicit here too since canBeRotated's own
+                // reasoning (rotation, not removal) is what actually matters for every other
+                // position.
                 | _ -> canBeRemoved && not (this.LockedPositions.Contains position)
 
             // Only filled Outer cards - not Outer2, Inner, or Primary - can be extracted into a
-            // new cluster of their own (see Pages/Home.fs's OnExtractCard).
+            // new cluster of their own (see Pages/Home.fs's OnExtractCard). Once a position
+            // already has a live extraction (LockedPositions), it can't be extracted again -
+            // re-extracting would spawn a second, disconnected sub-canvas for the same card
+            // instead of navigating back into the one that already exists (see canDiveIn below).
+            // A Modifier card can never actually reach an Outer slot in the first place (no cue's
+            // Expansions ever lists CardType.Modifier - see Data/*.fs), so this exclusion should
+            // never be load-bearing today; kept as an explicit guard anyway, since a Modifier's
+            // own cluster wouldn't make sense (nothing to attach an auto-Modifier's Inner_Bottom
+            // to on a Modifier primary) and this is cheap insurance against that changing later.
             let canBeExtracted =
                 match position with
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
-                | ClusterPosition.Outer_Right -> hasCard position
+                | ClusterPosition.Outer_Right ->
+                    hasCard position
+                    && card.Type <> CardType.Modifier
+                    && not (this.LockedPositions.Contains position)
+                | _ -> false
+
+            // True for a filled Outer card that's already the source of a live extraction - the
+            // mirror image of canBeExtracted above (exactly one of the two can ever be true for a
+            // given position). Clicking it (outside delete/extraction mode - see Card.fs's
+            // onCardClick) navigates into that sub-canvas instead.
+            let canDiveIn =
+                match position with
+                | ClusterPosition.Outer_Bottom
+                | ClusterPosition.Outer_Left
+                | ClusterPosition.Outer_Top
+                | ClusterPosition.Outer_Right -> hasCard position && this.LockedPositions.Contains position
                 | _ -> false
 
             concat {
                 let dropzoneVisibility =
                     if showDropzone position then "" else "display: none;"
 
-                div {
-                    attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
-                    attr.style $"{dropzoneVisibility}{offsetStyle}"
+                if isPickSlot then
+                    // Reuses dropzoneClassName's own established position/size CSS rule (the same
+                    // one the real dropzone below would use) so this needs no new position math -
+                    // just a different visual treatment (a dashed, always-clickable trigger
+                    // instead of a drag target) and a click instead of a drop. Icon signals
+                    // whether clicking actually offers a choice (2+ candidates, e.g. an Any slot
+                    // with a repeated type) or just auto-attaches the one available match (every
+                    // Inner slot, and any One/All-typed Outer/Outer2 slot).
+                    let triggerIcon =
+                        if (pickTypes |> Option.defaultValue []).Length > 1 then "fa-shuffle" else "fa-plus"
 
-                    comp<Dropzone<Card>> {
-                        "MaxItems" => 1
-                        "Items" => List<Card>()
-                        "Accepts" => Func<Card, Card, bool>(acceptDrop)
-                        "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
+                    div {
+                        attr.``class`` $"{dropzoneClassName} pick-one-trigger"
+                        attr.style $"{dropzoneVisibility}{offsetStyle}"
+                        on.click (fun _ -> openPicker ())
+
+                        i { attr.``class`` $"fa-solid {triggerIcon}" }
                     }
-                }
+                else
+                    div {
+                        attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
+                        attr.style $"{dropzoneVisibility}{offsetStyle}"
+
+                        comp<Dropzone<Card>> {
+                            "MaxItems" => 1
+                            "Items" => List<Card>()
+                            "Accepts" => Func<Card, Card, bool>(acceptDrop)
+                            "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
+                        }
+                    }
 
                 // isDragHandle/cardStyle/onCardMouseDown are always applied unconditionally
                 // below (rather than branching attr.style/on.mousedown per-position inside the
@@ -643,14 +759,15 @@ type LoreCluster() =
                             // do something even when it can't be removed).
                             "CanBeRemoved" => canBeRemoved
                             "IsDeleteMode" => this.IsDeleteMode
-                            "IsExtractionMode" => this.IsExtractionMode
                             "CanBeExtracted" => canBeExtracted
+                            "CanDiveIn" => canDiveIn
                             "ActiveEdge" => activeEdge
                             "OnRotationChanged" => onRotationChanged
                             "OnCurrentSideChanged" => onCurrentSideChanged
                             "OnGrowthChanged" => onGrowthChanged
                             "OnRemove" => onRemove
                             "OnExtract" => onExtract
+                            "OnDiveIn" => fun () -> this.OnDiveIn position
                         }
                     else
                         div { attr.style $"width: 270px; height: 270px;" }
@@ -661,13 +778,60 @@ type LoreCluster() =
 
         div {
             attr.``class`` "cluster-exterior"
-            
+
             div {
                 attr.``class`` "cluster-interior"
                 attr.style $"margin: {margin}px; transform: rotate({this.ClusterRotation}deg);"
-                
+
                 Union.toList<ClusterPosition>()
                 |> List.map cardAndDropzone
                 |> LoreBuilder.Utils.renderList
+
+                // Rendered once here (not per-position) so it isn't itself subject to whichever
+                // slot's own rotation/offset styling - a child of .cluster-interior rather than
+                // .canvas-content, so it scales/pans together with this cluster instead of trying
+                // to escape to a viewport-fixed position (which .canvas-content's own always-on
+                // transform: scale(zoom) would trap here anyway - see this feature's plan for why).
+                match this.OpenPickerPosition with
+                | None -> ()
+                | Some _ ->
+                    div {
+                        attr.``class`` "card-picker-backdrop"
+                        on.click (fun _ ->
+                            this.OpenPickerPosition <- None
+                            this.NotifyStateChanged())
+
+                        div {
+                            attr.``class`` "card-picker-popover"
+                            on.stopPropagation "click" true
+
+                            this.PickerCandidates
+                            |> List.mapi(fun idx candidate ->
+                                div {
+                                    attr.key idx
+                                    attr.``class`` "card-picker-candidate"
+                                    on.click (fun _ ->
+                                        this.PickerSelect candidate
+                                        this.OpenPickerPosition <- None
+                                        this.NotifyStateChanged())
+
+                                    // Size 270 (not some smaller preview size) is load-bearing,
+                                    // not cosmetic - Card.bolero.css's edge-cue offsets
+                                    // (.simple-left-edge's left:-125px and siblings) are absolute
+                                    // pixel values tuned for exactly this size and don't scale
+                                    // with Size, so anything else misplaces the left/right cues.
+                                    // ActiveEdge left at its None default deliberately: this is a
+                                    // standalone, not-yet-placed card, so it shows the same raw,
+                                    // all-four-edges view any other standalone preview in this app
+                                    // does, not an in-cluster single active edge.
+                                    comp<LoreBuilder.Components.Card> {
+                                        "Data" => candidate
+                                        "Size" => 270
+                                        "CanBeRotated" => false
+                                    }
+                                })
+                            |> LoreBuilder.Utils.renderList
+                        }
+                    }
             }
         }

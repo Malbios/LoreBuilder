@@ -339,9 +339,9 @@ type Card() =
 
     // Fixed per slot by LoreCluster's initialUiState for every card type except Modifier, which
     // the user can toggle by clicking the card body (see onCardClick below) - "all modifiers work
-    // both sides". Not an animated flip (that general mechanic was removed for causing issues
-    // elsewhere) - just an instant swap; see Card.bolero.css's .card rule for why its old
-    // transition had to come out too, not just be left dormant.
+    // both sides". Animates via Card.bolero.css's .card transition (re-added after an earlier
+    // attempt was pulled for conflicting with the growth feature - see that rule's own comment
+    // for why the two can't actually collide any more).
     [<Parameter>]
     member val CurrentSide = CardSide.Primary with get, set
 
@@ -364,19 +364,24 @@ type Card() =
     [<Parameter>]
     member val IsDeleteMode = false with get, set
 
-    // While true, clicking an eligible (CanBeExtracted) card copies it into a brand-new,
-    // independent cluster elsewhere on the canvas instead of doing anything else - set from
-    // Pages/Home.fs's extraction-mode toggle. Mutually exclusive with IsDeleteMode at the Home.fs
-    // level, but onCardClick's own branch ordering means delete still wins even if that ever
-    // wasn't true.
-    [<Parameter>]
-    member val IsExtractionMode = false with get, set
-
+    // Double-clicking an eligible (CanBeExtracted) card copies it into a brand-new, independent
+    // cluster elsewhere on the canvas - see onCardDoubleClick below. No highlighting on eligible
+    // cards (unlike delete's overlay) - double-click always extracts an eligible card regardless
+    // of any visual state, so a highlight wouldn't tell the user anything they don't already know.
     [<Parameter>]
     member val CanBeExtracted = false with get, set
 
     [<Parameter>]
     member val OnExtract: unit -> unit = ignore with get, set
+
+    // True for a card that's the source of a live extraction (see LoreCluster.fs's canDiveIn) -
+    // makes clicking it navigate into that sub-canvas instead of doing anything else, unless
+    // delete mode is active (see onCardClick below).
+    [<Parameter>]
+    member val CanDiveIn = false with get, set
+
+    [<Parameter>]
+    member val OnDiveIn: unit -> unit = ignore with get, set
 
     [<Parameter>]
     member val OnCurrentSideChanged: CardSide -> unit = ignore with get, set
@@ -410,11 +415,30 @@ type Card() =
     [<Parameter>]
     member val OnGrowthChanged: float -> unit = ignore with get, set
 
-    member private this.FlippedClass () =
+    // Counter-rotates by -Rotation before the actual flip and back by +Rotation after it, rather
+    // than a plain rotateY(180deg) - .flippable-card-container's own ancestor rotation is a real
+    // screen-space 2D rotation, and since transforms compose within their ancestor's already-
+    // transformed frame, an un-compensated rotateY's apparent hinge axis gets carried around by
+    // it: at Rotation 90/270 the flip visually hinges top-to-bottom instead of left-to-right.
+    // Sandwiching it between an equal and opposite rotateZ cancels that out, keeping the hinge
+    // axis screen-vertical regardless of Rotation.
+    //
+    // The two rotateZ values are the SAME constant in both the flipped and unflipped case (0deg
+    // for CardSide.Primary is not "no transform" here - it's this same sandwich with the middle
+    // rotateY at 0deg, deliberately) - only rotateY's own 0<->180 ever changes between them. CSS
+    // transitions interpolate each transform function's own parameter independently, so if the
+    // rotateZ values differed between the two states (e.g. omitted entirely on one side), they'd
+    // *also* animate instead of staying fixed, breaking this same compensation mid-transition -
+    // every intermediate flip frame would show a stray leftover rotation instead of a clean
+    // screen-vertical hinge throughout.
+    member private this.FlipStyle () =
 
-        match this.CurrentSide with
-        | CardSide.Primary -> ""
-        | CardSide.Secondary -> " flipped-card"
+        let flipAngle =
+            match this.CurrentSide with
+            | CardSide.Primary -> 0
+            | CardSide.Secondary -> 180
+
+        $"transform: rotateZ({-this.Rotation}deg) rotateY({flipAngle}deg) rotateZ({this.Rotation}deg);"
 
     member private this.Rotate direction =
 
@@ -440,13 +464,6 @@ type Card() =
         if not this.IsDeleteMode then ""
         elif this.CanBeRemoved then " deletable"
         else " delete-mode-inert"
-
-    // Unlike DeleteModeClass, there's no "something depends on this card" story to explain for an
-    // ineligible card here (Outer cards have no dependents) - just "" outside extraction mode or
-    // when this card isn't eligible, no separate inert/dimmed state.
-    member private this.ExtractionModeClass () =
-
-        if this.IsExtractionMode && this.CanBeExtracted then " extractable" else ""
 
     // Only the currently-shown side's cues can ever need growth room. For every card type except
     // Modifier, CurrentSide is fixed for the component's whole lifetime (set once by LoreCluster's
@@ -550,17 +567,11 @@ type Card() =
         let onCardClick (_: MouseEventArgs) =
             if this.IsDeleteMode && this.CanBeRemoved then
                 this.OnRemove ()
-            elif this.IsExtractionMode && this.CanBeExtracted then
-                this.OnExtract ()
+            elif not this.IsDeleteMode && this.CanDiveIn then
+                this.OnDiveIn ()
             // Guarded on IsDeleteMode explicitly (not just structurally implied by the elif
             // chain) so a card that's inert in delete mode (still depended on) doesn't fall
-            // through to flipping instead of staying inert. Not guarded on IsExtractionMode the
-            // same way though - unlike delete-mode-inert (a temporary state that could become
-            // deletable later), a card ineligible for extraction (anything but a filled Outer
-            // card) can never become extractable regardless of anything else, so there's nothing
-            // for extraction mode to actually be "protecting" here - suppressing flip on, say,
-            // the auto-attached Modifier just because extraction mode happens to still be on
-            // would only be confusing, not safer.
+            // through to flipping instead of staying inert.
             elif not this.IsDeleteMode && this.Data.Type = CardType.Modifier then
                 let newSide =
                     match this.CurrentSide with
@@ -570,21 +581,33 @@ type Card() =
                 this.CurrentSide <- newSide
                 this.OnCurrentSideChanged newSide
 
+        // Extraction lives on double-click rather than sharing onCardClick's own single-click
+        // branches - it has no mode toggle to otherwise distinguish "click to extract" from
+        // "click to flip/dive in" the way delete mode's own toggle does. A double-click still
+        // fires two ordinary click events first (so an eligible Modifier card would also flip
+        // twice - a harmless same-side-it-started-on flicker, not worth suppressing).
+        let onCardDoubleClick (_: MouseEventArgs) =
+            if not this.IsDeleteMode && this.CanBeExtracted then
+                this.OnExtract ()
+
+        let diveInClass = if this.CanDiveIn then " dive-in-enabled" else ""
+
         div {
-            attr.``class`` $"card-root{this.DeleteModeClass ()}{this.ExtractionModeClass ()}"
+            attr.``class`` $"card-root{this.DeleteModeClass ()}{diveInClass}"
             attr.style $"width: {this.Size}px; height: {this.Size}px; position: relative;"
 
             on.mouseover (fun _ -> this.IsHovered <- true)
             on.mouseout (fun _ -> this.IsHovered <- false)
             on.click onCardClick
+            on.dblclick onCardDoubleClick
 
             div {
                 attr.``class`` "flippable-card-container"
                 attr.style $"transform: rotate({this.Rotation}deg);"
 
                 div {
-                    attr.``class`` $"card{this.FlippedClass ()}"
-                    attr.style cardGrowthStyle
+                    attr.``class`` "card"
+                    attr.style $"{cardGrowthStyle}{this.FlipStyle ()}"
 
                     on.event "transitionstart" (fun _ -> this.IsFlipping <- true)
                     on.event "transitionend" (fun _ -> this.IsFlipping <- false)
@@ -605,7 +628,17 @@ type Card() =
 
                     ({
                         Class = "secondary-side"
-                        Style = $"color: {cardVisuals.SecondaryTextColor}; background-color: #FFFFFF; border: 2px solid {cardVisuals.SecondaryTextColor};"
+                        // The pre-rotation that makes this face land right-side-up once .card's
+                        // own flip brings it forward - previously a static rotateY(180deg)
+                        // (Card.bolero.css's old .secondary-side rule), which only canceled
+                        // .card's OWN flip correctly when Rotation was 0. Once .card's flip
+                        // became the Rotation-aware sandwich above, a plain rotateY(180deg) here
+                        // no longer cancels it exactly - conjugating a 180deg Y-rotation by a
+                        // Z-rotation negates the Z-rotation's own angle, so this side's content
+                        // ended up with a stray extra 2x-Rotation-degree spin (blank/misrotated
+                        // edges at Rotation=90/270). Needs the exact same sandwich to cancel
+                        // correctly again, for the same reason .card's own flip does.
+                        Style = $"color: {cardVisuals.SecondaryTextColor}; background-color: #FFFFFF; border: 2px solid {cardVisuals.SecondaryTextColor}; transform: rotateZ({-this.Rotation}deg) rotateY(180deg) rotateZ({this.Rotation}deg);"
                         ActiveEdge = this.ActiveEdge
                         Rotation = this.Rotation
                         Type = this.Data.Type
@@ -641,8 +674,4 @@ type Card() =
             // Tints the whole card red on hover when it's deletable in delete mode - pointer
             // events pass straight through (see CSS) so it never blocks the click beneath it.
             div { attr.``class`` "delete-overlay" }
-
-            // Same mechanism as delete-overlay above, tinted via .extractable instead - a
-            // distinct color (see Card.bolero.css) so it doesn't read as "danger" like delete's.
-            div { attr.``class`` "extract-overlay" }
         }

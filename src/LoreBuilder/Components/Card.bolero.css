@@ -7,6 +7,14 @@
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
+    /* Only animates Card.fs's own FlipStyle inline style (the sole thing that ever changes this
+       element's transform) - scoped to transform alone so it can't interact with the growth
+       feature's own bottom/top/left/right inline offsets on this same element (a past animated
+       flip attempt was removed for conflicting with growth; the two can't actually co-occur any
+       more since growth never applies to Modifier cards, the only type that ever flips - see
+       CardHelpers.growthEdge). Matches .flippable-card-container's own 0.3s ease convention for
+       its (separate) rotation transform. */
+    transition: transform 0.3s ease;
 
     border-radius: 20px;
     box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -14,13 +22,6 @@
     font-weight: bold;
     font-family: sans-serif;
     text-align: center;
-}
-
-/* No transition here on purpose - CurrentSide can now change at runtime for Modifier cards (see
-   Card.fs's onCardClick), and the old animated flip gesture (removed for causing issues elsewhere)
-   used exactly this transform transitioning. Modifiers just need to swap instantly, not animate. */
-.flipped-card {
-    transform: rotateY(180deg);
 }
 
 .flippable-card-container {
@@ -42,69 +43,68 @@
 
     backface-visibility: hidden;
     border-radius: 20px;
+    /* Clips every child (the edge cue boxes) to this face's own rounded shape, so nothing can
+       ever render past the card's border - robust regardless of exactly how a given child is
+       sized/positioned. Safe for the edge cues specifically: the sideways (left/right) ones are
+       deliberately positioned/rotated so their bounding box always lands exactly within this
+       face's own bounds (see Card.fs's leftRightOffsetPx), never past it, growth included - so
+       there's nothing here for this to clip that isn't already meant to be clipped. */
+    overflow: hidden;
 
-    display: flex;
-    justify-content: center;
-}
-
-.secondary-side {
-    transform: rotateY(180deg);
-}
-
-/* The fixed-size "art" (background + CardBadge), kept separate from .card
-   itself so a grown .card (see .grow-*) doesn't stretch or off-center it. */
-.card-art {
-    position: absolute;
-    width: 270px;
-    height: 270px;
-    top: 0;
-    left: 0;
-
-    border-radius: 20px;
-}
-
-.primary-side .card-art,
-.secondary-side .card-art {
+    /* Lives here (not on the fixed-size .card-art below) specifically so it covers this face's
+       whole *actual* size, growth included - .card-art stays a fixed 270x270 purely to keep
+       CardBadge's own circular icon from being recentered when the card grows (see its own
+       comment), which this gradient has no such constraint against; keeping it fixed-size too
+       previously left a plain gap where the pattern didn't reach the grown edge, reading as a
+       triangle cut off early instead of continuing to the border. */
     background-image: conic-gradient(from 45deg,
         /* Left */ rgba(0, 0, 0, 0.2) 0deg 90deg,
         /* Top */ rgba(255, 255, 255, 0.1) 90deg 180deg,
         /* Right */ rgba(0, 0, 0, 0.2) 180deg 270deg,
         /* Bottom */ rgba(255, 255, 255, 0.1) 270deg 360deg
     );
+
+    display: flex;
+    justify-content: center;
 }
 
-/* Anchors the art square to the side opposite the growth direction, so it
-   stays flush against the un-grown edges of .card - and squares off the two
-   corners that would otherwise land mid-edge instead of at an actual corner
-   of the grown .card. */
+/* Purely a positioning anchor for CardBadge's own fixed-px-sized circular icon (see
+   CardBadge.bolero.css - none of it is percentage-based, so this box's own size only matters for
+   where "centered" ends up, not for the icon's shape) - kept at a fixed 270x270 and anchored to
+   the un-grown side so the badge doesn't shift off its usual centered spot when the card grows
+   (the conic-gradient background above has no such constraint, so it lives on the face itself
+   instead, covering the actual - possibly grown - size). */
+.card-art {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: 0;
+    left: 0;
+}
+
+/* Anchors CardBadge's positioning box to the side opposite the growth direction, so the badge
+   stays centered on the card's own un-grown 270x270 area instead of re-centering into the grown
+   region. */
 .card-art-anchor-top {
     top: 0;
     left: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
 }
 
 .card-art-anchor-bottom {
     top: auto;
     bottom: 0;
     left: 0;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
 }
 
 .card-art-anchor-left {
     left: 0;
     top: 0;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
 }
 
 .card-art-anchor-right {
     left: auto;
     right: 0;
     top: 0;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
 }
 
 .simple-cue,
@@ -124,6 +124,12 @@
 .modifier-edge-triangle {
     font-size: 1.4em;
     margin: 0 0.2em;
+
+    /* fa-caret-up's own glyph is wider/shorter than wanted here - font-size alone scales both
+       dimensions together, so stretch it anisotropically instead (narrower, taller) via
+       transform. inline-block so the transform has a predictable box/origin to work from. */
+    display: inline-block;
+    transform: scaleX(0.7) scaleY(1.3);
 }
 
 .simple-cue {
@@ -304,21 +310,6 @@
     opacity: 0.55;
 }
 
-.extract-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-
-    pointer-events: none;
-    background-color: rgba(37, 99, 235, 0.35);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.extractable {
+.dive-in-enabled {
     cursor: pointer;
-}
-
-.extractable:hover .extract-overlay {
-    opacity: 1;
 }
