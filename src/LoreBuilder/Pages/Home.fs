@@ -121,7 +121,17 @@ type Home() =
     [<Inject>]
     member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
 
-    member this.Cards = Utils.allCards
+    // Modifier and Emblem are never something the user drags in directly - Modifiers only ever
+    // arrive auto-attached by extraction (Utils.randomModifierCard) or picked via a cluster
+    // slot's own "Any"/"One" click-to-pick trigger (Utils.randomCandidatesFor), and Emblems have
+    // no place in a cluster at all yet. Utils.allCards itself stays the full set (that random-pick
+    // machinery still needs every type in it) - only the sidebar's own drag-in list is filtered.
+    member this.Cards =
+        Utils.allCards
+        |> List.filter(fun cards ->
+            match cards with
+            | card :: _ -> card.Type <> CardType.Modifier && card.Type <> CardType.Emblem
+            | [] -> true)
 
     member this.TriggerReRender() = this.StateHasChanged()
 
