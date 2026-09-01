@@ -9,9 +9,9 @@
     border: 1px solid #999;
     box-sizing: border-box;
 
-    /* So it's visually obvious where the canvas's own scrollable area ends and the surrounding
-       page begins - distinct from the page's own plain background. */
-    background-color: #808080;
+    /* Darker than .side-panel's own light gray (LoreBuilder.bolero.css) - keeps the split between
+       sidebar and canvas visually obvious without either one being stark white. */
+    background-color: #4d4d4d;
 }
 
 /* Wraps the background dropzone and every canvas-cell so the current zoom level scales them

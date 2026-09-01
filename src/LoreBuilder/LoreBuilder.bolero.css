@@ -85,7 +85,7 @@
        potentially even after) the collapse. */
     overflow: hidden;
 
-    background-color: white;
+    background-color: #e6e6e6;
     box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
 }
 
