@@ -322,6 +322,31 @@ type Canvas() =
                                 "OnItemDropAt" => Action<Card, double, double>(fun card x y -> this.OnCanvasDropped(card, x, y))
                             }
                         }
+                else
+                    // A sub-canvas's lone cluster is only ever 550x550 - smaller than most actual
+                    // viewports - so .canvas-content never grows past it and there's nothing to
+                    // scroll into on any side. That leaves OnAfterRenderAsync's own centerOn call
+                    // physically unable to do its job (a scroll container clamps scrollLeft/Top
+                    // back to 0 once content already fits inside the viewport), so the cluster
+                    // just sits pinned at its raw canvas-space origin instead of centering. An
+                    // invisible, inert spacer (same generous reach as the populated-root dropzone
+                    // above, just with no Dropzone underneath - sub-canvases never accept drops)
+                    // gives the scroll container enough real estate in every direction for
+                    // centering to actually be reachable - as long as none of it lands at a
+                    // negative canvas-space coordinate, which a native scroll container can never
+                    // actually scroll to (see Pages/Home.fs's own startPosition doc comment, which
+                    // keeps this spacer's own left/top comfortably non-negative).
+                    for pair in canvasState.ClusterPositions do
+                        let x, y = pair.Value
+                        let reach = cellSize * 2.0
+                        let centerX = x + cellSize / 2.0
+                        let centerY = y + cellSize / 2.0
+
+                        div {
+                            attr.``class`` "canvas-background-dropzone no-pointer"
+                            attr.style
+                                $"left: {centerX - reach}px; top: {centerY - reach}px; width: {reach * 2.0}px; height: {reach * 2.0}px;"
+                        }
 
                 for pair in canvasState.ClusterPositions do
                     let id = pair.Key

@@ -41,10 +41,19 @@ window.loreBuilderCanvas = {
     // element's own content-pixel space - ends up centered in its viewport. Used to center a
     // freshly-shown sub-canvas on its own lone cluster (see Canvas.fs's OnAfterRenderAsync),
     // since native scroll position isn't otherwise preserved when a canvas is hidden/shown again.
+    // element (.canvas-area) spans the full page edge-to-edge - .activity-bar/.side-panel only
+    // overlay on top of it rather than reducing its layout box - so centering purely on
+    // element.clientWidth/2 puts the target point at the midpoint of the *whole page*, including
+    // the strip hidden behind the sidebar, which visibly shifts everything left of true-center.
+    // Centering on the actually-visible region instead means adding half of whatever width
+    // .side-panel currently occupies (its own box already covers .activity-bar's fixed 48px too,
+    // collapsed or open - see LoreBuilder.bolero.css's own .activity-bar doc comment).
     centerOn: function (element, canvasX, canvasY, zoom) {
         const scaledX = canvasX * zoom;
         const scaledY = canvasY * zoom;
-        element.scrollLeft = scaledX - element.clientWidth / 2;
+        const sidePanel = element.closest('.home-layout')?.querySelector('.side-panel');
+        const sidebarWidth = sidePanel ? sidePanel.getBoundingClientRect().width : 0;
+        element.scrollLeft = scaledX - (element.clientWidth + sidebarWidth) / 2;
         element.scrollTop = scaledY - element.clientHeight / 2;
     },
 

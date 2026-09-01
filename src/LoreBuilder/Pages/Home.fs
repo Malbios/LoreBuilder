@@ -63,12 +63,15 @@ type Home() =
     }
 
     // Each cluster's reserved box size, and the fixed spot every extracted cluster's sub-canvas
-    // starts it at - the origin, not offset by a cellSize margin the way a drop-anywhere cluster
-    // on root would be, since a sub-canvas never holds anything else to leave room around (see
-    // OnExtractCard) and this keeps its one cluster's whole footprint within a typical viewport
-    // with no scrollbar needed, matching Canvas.fs's own "no clusters yet" root fallback.
+    // starts it at. Offset a full "reach" (matching Canvas.fs's own reach = cellSize * 2.0, used
+    // there to size a scroll-range spacer around this same cluster) away from the origin in both
+    // directions - a native scroll container can only ever reach non-negative scroll positions,
+    // so keeping the cluster (and the spacer built around it) entirely on the positive side of
+    // (0, 0) is what makes Canvas.fs's own centerOn call able to actually scroll it into view
+    // centered, rather than the browser silently clamping toward 0 once the origin itself would've
+    // gone negative.
     let cellSize = 550.0
-    let startPosition = (0.0, 0.0)
+    let startPosition = (cellSize * 2.0, cellSize * 2.0)
 
     // A freshly drop-anywhere-created cluster's footprint before LoreCluster's own
     // OnAfterRender has had a chance to report its real one (see OnFootprintChanged below) - it
