@@ -449,7 +449,7 @@ type Home() =
             // this whole keep-alive scheme exists to survive. Hidden at root (trail length 1) so
             // root's own UI still looks pixel-identical to before this feature existed.
             div {
-                attr.``class`` "breadcrumb-bar"
+                attr.``class`` (if model.IsPanelOpen then "breadcrumb-bar panel-open" else "breadcrumb-bar")
                 attr.style (if trail.Length > 1 then "" else "display: none;")
 
                 trail

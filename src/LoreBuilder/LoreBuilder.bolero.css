@@ -112,22 +112,36 @@
     box-sizing: border-box;
 }
 
-/* Floats top-right - clear of .activity-bar (top-left) and .side-panel (left edge, whether open
-   or closed) so it never needs to coordinate layout with either. Hidden entirely at root (see
+/* Floats top-left, right after .activity-bar/.side-panel - left tracks whichever of the two is
+   currently wider (48px collapsed, matching .activity-bar's own width; the panel-open value below
+   once open), animating alongside .side-panel's own 0.2s grid-track transition so the two move in
+   sync instead of the breadcrumb bar jumping to its new spot. Hidden entirely at root (see
    Home.fs's Render()), so root's own UI stays pixel-identical to before this existed. */
 .breadcrumb-bar {
+    --sidebar-width: 48px;
+
     position: absolute;
     top: 0;
-    right: 0;
+    left: var(--sidebar-width);
     z-index: 3;
 
     display: flex;
     align-items: center;
     padding: 0.4rem 0.75rem;
-    max-width: calc(100% - 48px);
+    max-width: calc(100% - var(--sidebar-width));
+    transition: left 0.2s ease;
 
     background-color: white;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* .side-panel's own open width - not itself content-sized text/cards of arbitrary width, but a
+   fixed 2-column grid of Size=110 CardStacks (see Pages/Home.fs's Cards render), so this is a
+   real (if duplicated - same "kept in sync manually" precedent as Pages/Home.fs's own cellSize)
+   value rather than a guess: 48px (activity-bar) + 2 card columns + the grid's own gap + its
+   left/right padding. */
+.breadcrumb-bar.panel-open {
+    --sidebar-width: calc(48px + 2 * 110px + 0.5rem + 2 * 0.5rem);
 }
 
 .breadcrumb-crumb {
