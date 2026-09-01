@@ -569,9 +569,14 @@ type Card() =
                 this.OnRemove ()
             elif not this.IsDeleteMode && this.CanDiveIn then
                 this.OnDiveIn ()
-            // Guarded on IsDeleteMode explicitly (not just structurally implied by the elif
-            // chain) so a card that's inert in delete mode (still depended on) doesn't fall
-            // through to flipping instead of staying inert.
+
+        // Extraction and flipping both live on double-click rather than onCardClick's own
+        // single-click branches - neither eligibility check overlaps with the other (a Modifier
+        // can never itself be CanBeExtracted - see LoreCluster's canBeExtracted - so a double-click
+        // on any one card only ever matches at most one of these two branches).
+        let onCardDoubleClick (_: MouseEventArgs) =
+            if not this.IsDeleteMode && this.CanBeExtracted then
+                this.OnExtract ()
             elif not this.IsDeleteMode && this.Data.Type = CardType.Modifier then
                 let newSide =
                     match this.CurrentSide with
@@ -580,15 +585,6 @@ type Card() =
 
                 this.CurrentSide <- newSide
                 this.OnCurrentSideChanged newSide
-
-        // Extraction lives on double-click rather than sharing onCardClick's own single-click
-        // branches - it has no mode toggle to otherwise distinguish "click to extract" from
-        // "click to flip/dive in" the way delete mode's own toggle does. A double-click still
-        // fires two ordinary click events first (so an eligible Modifier card would also flip
-        // twice - a harmless same-side-it-started-on flicker, not worth suppressing).
-        let onCardDoubleClick (_: MouseEventArgs) =
-            if not this.IsDeleteMode && this.CanBeExtracted then
-                this.OnExtract ()
 
         let diveInClass = if this.CanDiveIn then " dive-in-enabled" else ""
 
