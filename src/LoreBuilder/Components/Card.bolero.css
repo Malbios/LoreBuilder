@@ -1,3 +1,12 @@
+/* Without this, a double-click anywhere on a card's own text (its cue text, name, etc.) - the
+   trigger for extraction (see Card.fs's onCardDoubleClick) - also fires the browser's own default
+   double-click-to-select-word behavior, highlighting text instead of (or alongside) extracting.
+   Inherited by every descendant, so it covers all of a card's text without needing repeating on
+   each cue/label individually. */
+.card-root {
+    user-select: none;
+}
+
 /* Growth past this fixed inset:0 box (to enclose an active Complex cue's real content instead
    of letting it overflow past the card's own background/border) is applied per-instance as an
    inline bottom/top/left/right style computed in Card.fs's Render() from a real measurement of
