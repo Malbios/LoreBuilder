@@ -207,6 +207,14 @@
     width: 270px;
     height: auto;
     min-height: 50px;
+
+    /* Left/right keep the text off the card's rounded corners; bottom keeps it off the outward-
+       facing edge itself (the one anchored via bottom:0/right:0/etc. below, and pointing away
+       from the card whichever of the 4 edges this cue ends up rotated to - see .complex-*-edge).
+       No top padding - the opposite side already faces back into the card's own art/interior,
+       which already has room. box-sizing:border-box (global) keeps this within the same 270px
+       width rather than growing it. */
+    padding: 0 14px 10px;
 }
 
 .complex-bottom-edge {
