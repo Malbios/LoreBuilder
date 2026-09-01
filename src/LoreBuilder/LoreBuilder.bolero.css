@@ -38,8 +38,13 @@
     width: 48px;
     padding-top: 0.5rem;
 
-    background-color: white;
-    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
+    /* Same fill as .side-panel, and no shadow of its own - .side-panel's background already
+       extends underneath this (its box starts at the same x:0, just padded past this width), so
+       matching color plus dropping this shadow makes the two read as one continuous sidebar
+       instead of a white toolbar floating in front of it. .side-panel's own shadow (at its own
+       right edge, which always sits right past this bar whether collapsed or open) is left as the
+       sidebar's only outer edge. */
+    background-color: #e6e6e6;
 }
 
 .activity-bar-icon {
