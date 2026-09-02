@@ -195,12 +195,13 @@ type LoreCluster() =
 
     // Which Outer slot's "pick one of several" popover is currently open (see Render()'s own
     // isAnySlot) - None means closed. PickerCandidates is that slot's freshly-rolled set, shown in
-    // the popover; PickerSelect is that exact slot's own replaceCard closure, captured when the
+    // the popover; PickerSelect is that exact slot's own replaceCard closure (plus the rotation to
+    // place the card at - see its own definition in openPicker below for why), captured when the
     // popover was opened so the popover itself (rendered once, outside the per-position loop)
     // doesn't need to know which position it belongs to.
     member val private OpenPickerPosition: ClusterPosition option = None with get, set
     member val private PickerCandidates: Card list = [] with get, set
-    member val private PickerSelect: Card -> unit = ignore with get, set
+    member val private PickerSelect: Card -> int -> unit = (fun _ _ -> ()) with get, set
 
     // The CurrentSide a candidate will actually be shown with once placed (see openPicker below)
     // - captured at popover-open time, same reasoning as PickerSelect: the popover itself is
@@ -511,7 +512,31 @@ type LoreCluster() =
                     let candidates = LoreBuilder.Utils.randomCandidatesFor types
                     this.PickerCandidates <- candidates
                     this.PickerRotations <- Array.zeroCreate candidates.Length
-                    this.PickerSelect <- replaceCard
+
+                    // Whichever cue is sitting at the bottom of the picker preview (accounting
+                    // for however far the user spun it there via PickerRotations) is the one
+                    // that should read as this card's identity once placed, matching what was
+                    // actually shown while picking rather than always defaulting to Rotation=0
+                    // (which - see CardHelpers.isVisible - activates the Bottom cue directly for
+                    // a Bottom-convention position, but the *opposite* edge for a Top-convention
+                    // one). Every position this popover can open for uses Top-convention active-
+                    // edge matching (Primary, the only Bottom-convention position, never reaches
+                    // here - see pickTypes above), so the rotation needed is whatever rotation
+                    // makes CardHelpers.edgeFromRotation land on that same edge's opposite.
+                    this.PickerSelect <-
+                        fun card pickerRotation ->
+                            let bottomEdgeInPicker = CardHelpers.edgeFromRotation pickerRotation
+
+                            let placedRotation =
+                                match CardEdge.opposite bottomEdgeInPicker with
+                                | CardEdge.Bottom -> 0
+                                | CardEdge.Right -> 90
+                                | CardEdge.Top -> 180
+                                | CardEdge.Left -> 270
+
+                            replaceCard card
+                            cardUiStates[position] <- { cardUiStates[position] with Rotation = placedRotation }
+
                     this.PickerCurrentSide <- (initialUiState isOverriddenInner position).CurrentSide
                     this.OpenPickerPosition <- Some position
                     this.NotifyStateChanged()
@@ -945,7 +970,7 @@ type LoreCluster() =
                                     div {
                                         attr.``class`` "card-picker-pick-button"
                                         on.click (fun _ ->
-                                            this.PickerSelect candidate
+                                            this.PickerSelect candidate this.PickerRotations[idx]
                                             this.OpenPickerPosition <- None
                                             this.NotifyStateChanged())
 
