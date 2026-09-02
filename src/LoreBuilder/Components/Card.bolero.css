@@ -204,7 +204,17 @@
    of the same text line instead of towering over or shrinking against it. */
 .icontext-cue-icon {
     font-size: 1em;
-    margin: 0 0.15rem;
+    margin: 0 0.35rem;
+}
+
+/* CardHelpers.cueExpansions's badge row (Components/Card.fs), when it's rendering an IconText
+   cue's Any/All icon set rather than a ComplexCue's own Expansions - only reachable here as a
+   *direct* child of .icontext-cue (ComplexCue's own usage nests it inside
+   .cue-text-and-expansions instead, so this selector doesn't touch that). Matches
+   .icontext-cue-icon's own margin so a multi-type Namesake primary cue gets the same breathing
+   room around its icon group as a single-type one gets around its lone icon. */
+.icontext-cue > .cue-expansions {
+    margin: 0 0.35rem;
 }
 
 .icon-cue {
