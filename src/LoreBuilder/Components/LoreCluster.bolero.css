@@ -236,10 +236,16 @@
     pointer-events: none;
 }
 
-/* Layered onto the same *-dropzone position/size classes the real dropzone would otherwise use
-   (see Render()'s own isAnySlot branch) - always clickable, not mode-gated or drag-driven, so it
-   reads as its own distinct "click to choose" affordance rather than a drag target. */
+/* Nested inside the real Dropzone<Card> for this slot (see Render()'s own isPickSlot branch,
+   passed as the dropzone's Footer) - position:absolute;inset:0 fills the same box the dropzone
+   itself already occupies (its own *-dropzone position/size class), so a slot is both an ordinary
+   drag target *and* shows this always-clickable "click to choose" trigger on top of it.
+   pointer-events:auto overrides the dropzone wrapper's own no-pointer/auto-pointer gating above,
+   so this stays clickable regardless of whether a drag is in progress. */
 .pick-one-trigger {
+    position: absolute;
+    inset: 0;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -285,12 +291,27 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
+/* No longer clickable as a whole (its own card is now rotatable via hover arrows, same as a
+   cluster's own cards - a click there needs to reach the card, not select it) - picking now goes
+   through .card-picker-pick-button below each one instead. */
 .card-picker-candidate {
-    cursor: pointer;
-    border-radius: 12px;
-    transition: transform 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.card-picker-candidate:hover {
-    transform: scale(1.05);
+.card-picker-pick-button {
+    padding: 0.4rem 1.5rem;
+    border-radius: 6px;
+
+    background-color: #543A7A;
+    color: white;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.card-picker-pick-button:hover {
+    filter: brightness(1.15);
 }

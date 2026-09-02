@@ -26,7 +26,6 @@
     transition: transform 0.3s ease;
 
     border-radius: 20px;
-    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
 
     font-weight: bold;
     font-family: sans-serif;
@@ -52,6 +51,28 @@
 
     backface-visibility: hidden;
     border-radius: 20px;
+    /* Lives here, not on .card, even though it's the same value for both sides and .card itself
+       looks like the more natural place for it - .card's own box has NO local transform of its
+       own to compensate for .flippable-card-container's ancestor rotation (that compensating
+       rotateZ/rotateY/rotateZ sandwich IS .card's transform, applied once, in the container's own
+       frame), so .card's *own* painted box (this box-shadow, previously declared directly on it)
+       ends up composited at container-rotation-times-sandwich, which reduces to a plain mirrored
+       rotation running backwards relative to the correctly-compensated content on .primary-side/
+       .secondary-side below. Rotating a flipped card showed this as a content-free "shaded
+       border" ghost spinning the opposite direction, sitting right behind the real face -
+       confirmed by direct reproduction. Each side already carries its own correct compensating
+       transform (.secondary-side's own inline sandwich, primary's implicit identity), so painting
+       the shadow on them instead of on .card makes it inherit the same, correct rotation as
+       everything else on the face. */
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    /* .secondary-side's own inline transform (Card.fs's Render()) is the same Rotation-canceling
+       rotateZ/rotateY/rotateZ sandwich .card and .flippable-card-container each animate over their
+       own 0.3s ease - without a matching transition here, this one snapped instantly to its new
+       angle while its two ancestors were still mid-transition, breaking the cancellation for that
+       whole 0.3s window and making a rotate look like it briefly spun the wrong way before
+       correcting itself. Harmless on .primary-side, which has no such inline transform to animate. */
+    transition: transform 0.3s ease;
     /* Clips every child (the edge cue boxes) to this face's own rounded shape, so nothing can
        ever render past the card's border - robust regardless of exactly how a given child is
        sized/positioned. Safe for the edge cues specifically: the sideways (left/right) ones are
@@ -197,6 +218,16 @@
     top: 127px;
     transform: rotate(-90deg);
     margin-right: 5px;
+}
+
+/* Card.fs's Icon cue renders a bare <img> with no width/height of its own - without this it
+   paints at its source SVG's own intrinsic size (often much bigger than this 35x35 container,
+   e.g. a couple hundred px) instead of shrinking to fit it. object-fit:contain keeps the icon's
+   own aspect ratio rather than stretching it to a square. */
+.icon-cue img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 /* height is content-driven (see wwwroot/js/card.js's measurement of this box's real

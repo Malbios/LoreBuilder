@@ -198,6 +198,12 @@ type LoreCluster() =
     member val private PickerCandidates: Card list = [] with get, set
     member val private PickerSelect: Card -> unit = ignore with get, set
 
+    // One rotation per candidate, index-aligned with PickerCandidates and reset alongside it every
+    // time the popover opens - lets the user spin a candidate to preview it before committing via
+    // its own "Pick" button (see Render()'s own popover block), same rotate-arrows interaction a
+    // cluster's own cards already have.
+    member val private PickerRotations: int[] = [||] with get, set
+
     member private this.HasCard position =
         cards[position] <> Card.empty
 
@@ -459,7 +465,9 @@ type LoreCluster() =
                 match pickTypes |> Option.defaultValue [] with
                 | [ singleType ] -> LoreBuilder.Utils.randomCandidatesFor [ singleType ] |> List.head |> replaceCard
                 | types ->
-                    this.PickerCandidates <- LoreBuilder.Utils.randomCandidatesFor types
+                    let candidates = LoreBuilder.Utils.randomCandidatesFor types
+                    this.PickerCandidates <- candidates
+                    this.PickerRotations <- Array.zeroCreate candidates.Length
                     this.PickerSelect <- replaceCard
                     this.OpenPickerPosition <- Some position
                     this.NotifyStateChanged()
@@ -675,8 +683,8 @@ type LoreCluster() =
 
             // True for a filled Outer card that's already the source of a live extraction - the
             // mirror image of canBeExtracted above (exactly one of the two can ever be true for a
-            // given position). Clicking it (outside delete/extraction mode - see Card.fs's
-            // onCardClick) navigates into that sub-canvas instead.
+            // given position). Double-clicking it (outside delete mode - see Card.fs's
+            // onCardDoubleClick) navigates into that sub-canvas instead.
             let canDiveIn =
                 match position with
                 | ClusterPosition.Outer_Bottom
@@ -689,36 +697,44 @@ type LoreCluster() =
                 let dropzoneVisibility =
                     if showDropzone position then "" else "display: none;"
 
-                if isPickSlot then
-                    // Reuses dropzoneClassName's own established position/size CSS rule (the same
-                    // one the real dropzone below would use) so this needs no new position math -
-                    // just a different visual treatment (a dashed, always-clickable trigger
-                    // instead of a drag target) and a click instead of a drop. Icon signals
-                    // whether clicking actually offers a choice (2+ candidates, e.g. an Any slot
-                    // with a repeated type) or just auto-attaches the one available match (every
-                    // Inner slot, and any One/All-typed Outer/Outer2 slot).
-                    let triggerIcon =
-                        if (pickTypes |> Option.defaultValue []).Length > 1 then "fa-shuffle" else "fa-plus"
+                // Icon signals whether clicking actually offers a choice (2+ candidates, e.g. an
+                // Any slot with a repeated type) or just auto-attaches the one available match
+                // (every Inner slot, and any One/All-typed Outer/Outer2 slot).
+                let triggerIcon =
+                    if (pickTypes |> Option.defaultValue []).Length > 1 then "fa-shuffle" else "fa-plus"
 
-                    div {
-                        attr.``class`` $"{dropzoneClassName} pick-one-trigger"
-                        attr.style $"{dropzoneVisibility}{offsetStyle}"
-                        on.click (fun _ -> openPicker ())
+                div {
+                    attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
+                    attr.style $"{dropzoneVisibility}{offsetStyle}"
 
-                        i { attr.``class`` $"fa-solid {triggerIcon}" }
+                    comp<Dropzone<Card>> {
+                        "MaxItems" => 1
+                        "Items" => List<Card>()
+                        "Accepts" => Func<Card, Card, bool>(acceptDrop)
+                        "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
+
+                        // Every tugging slot accepts a dragged card directly (Accepts/OnItemDrop
+                        // above) same as Primary always has, alongside this click-to-pick trigger
+                        // nested inside it as the dropzone's own Footer - the two mechanics share
+                        // the same box rather than one replacing the other. The icon's own
+                        // pointer-events:auto (see .pick-one-trigger) overrides this dropzone's
+                        // no-pointer/auto-pointer gating above, so it stays clickable regardless
+                        // of whether a drag is in progress; a drop landing on the icon itself
+                        // still bubbles up to this Dropzone's own handlers like any other drop in
+                        // this box would.
+                        attr.fragment
+                            "Footer"
+                            (if isPickSlot then
+                                 div {
+                                     attr.``class`` "pick-one-trigger"
+                                     on.click (fun _ -> openPicker ())
+
+                                     i { attr.``class`` $"fa-solid {triggerIcon}" }
+                                 }
+                             else
+                                 Node.Empty ())
                     }
-                else
-                    div {
-                        attr.``class`` $"{dropzoneClassName}{blinkerClass}{pointerEventsClass}"
-                        attr.style $"{dropzoneVisibility}{offsetStyle}"
-
-                        comp<Dropzone<Card>> {
-                            "MaxItems" => 1
-                            "Items" => List<Card>()
-                            "Accepts" => Func<Card, Card, bool>(acceptDrop)
-                            "OnItemDrop" => EventCallbackFactory().Create(this, onDrop)
-                        }
-                    }
+                }
 
                 // isDragHandle/cardStyle/onCardMouseDown are always applied unconditionally
                 // below (rather than branching attr.style/on.mousedown per-position inside the
@@ -810,10 +826,6 @@ type LoreCluster() =
                                 div {
                                     attr.key idx
                                     attr.``class`` "card-picker-candidate"
-                                    on.click (fun _ ->
-                                        this.PickerSelect candidate
-                                        this.OpenPickerPosition <- None
-                                        this.NotifyStateChanged())
 
                                     // Size 270 (not some smaller preview size) is load-bearing,
                                     // not cosmetic - Card.bolero.css's edge-cue offsets
@@ -823,11 +835,31 @@ type LoreCluster() =
                                     // ActiveEdge left at its None default deliberately: this is a
                                     // standalone, not-yet-placed card, so it shows the same raw,
                                     // all-four-edges view any other standalone preview in this app
-                                    // does, not an in-cluster single active edge.
+                                    // does, not an in-cluster single active edge. Rotatable (unlike
+                                    // a cluster's own cards, nothing here depends on this exact
+                                    // rotation staying put) via the same arrows-on-hover
+                                    // interaction, purely to preview the card before picking it -
+                                    // picking itself moved to its own button below, now that
+                                    // clicking the card body spins it instead of selecting it.
                                     comp<LoreBuilder.Components.Card> {
                                         "Data" => candidate
                                         "Size" => 270
-                                        "CanBeRotated" => false
+                                        "CanBeRotated" => true
+                                        "Rotation" => this.PickerRotations[idx]
+                                        "OnRotationChanged" =>
+                                            fun (rotation: int) ->
+                                                this.PickerRotations[idx] <- rotation
+                                                this.NotifyStateChanged()
+                                    }
+
+                                    div {
+                                        attr.``class`` "card-picker-pick-button"
+                                        on.click (fun _ ->
+                                            this.PickerSelect candidate
+                                            this.OpenPickerPosition <- None
+                                            this.NotifyStateChanged())
+
+                                        text "Pick"
                                     }
                                 })
                             |> LoreBuilder.Utils.renderList

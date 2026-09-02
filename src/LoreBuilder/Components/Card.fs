@@ -375,8 +375,8 @@ type Card() =
     member val OnExtract: unit -> unit = ignore with get, set
 
     // True for a card that's the source of a live extraction (see LoreCluster.fs's canDiveIn) -
-    // makes clicking it navigate into that sub-canvas instead of doing anything else, unless
-    // delete mode is active (see onCardClick below).
+    // makes double-clicking it navigate into that sub-canvas instead of doing anything else,
+    // unless delete mode is active (see onCardDoubleClick below).
     [<Parameter>]
     member val CanDiveIn = false with get, set
 
@@ -385,6 +385,14 @@ type Card() =
 
     [<Parameter>]
     member val OnCurrentSideChanged: CardSide -> unit = ignore with get, set
+
+    // Outside this, double-click-to-flip only ever applies to a Modifier card (see
+    // onCardDoubleClick below) - clusters/the picker popover have no use for flipping any other
+    // type, and a card mid-cluster still has its own extraction/dive-in double-click meaning to
+    // protect. Pages/CardGallery.fs is the one place that sets this true, deliberately scoped to
+    // just that page rather than changed globally, so this stays off everywhere else.
+    [<Parameter>]
+    member val AllowFlip = false with get, set
 
     [<Parameter>]
     member val ActiveEdge = None with get, set
@@ -567,17 +575,25 @@ type Card() =
         let onCardClick (_: MouseEventArgs) =
             if this.IsDeleteMode && this.CanBeRemoved then
                 this.OnRemove ()
-            elif not this.IsDeleteMode && this.CanDiveIn then
-                this.OnDiveIn ()
 
-        // Extraction and flipping both live on double-click rather than onCardClick's own
-        // single-click branches - neither eligibility check overlaps with the other (a Modifier
-        // can never itself be CanBeExtracted - see LoreCluster's canBeExtracted - so a double-click
-        // on any one card only ever matches at most one of these two branches).
+        // Extraction, dive-in and flipping all live on double-click rather than onCardClick's own
+        // single-click branch - none of the three eligibility checks overlap with either of the
+        // others (a Modifier can never itself be CanBeExtracted - see LoreCluster's
+        // canBeExtracted - and CanBeExtracted/CanDiveIn are themselves mutually exclusive per
+        // position - see LoreCluster's canDiveIn - so a double-click on any one card only ever
+        // matches at most one of these three branches). CanDiveIn specifically needs to live here,
+        // not on a single click: a single click navigating into the new sub-canvas would leave the
+        // *second* click of the user's physical double-click gesture to land on whatever new card
+        // now occupies that same screen position (typically the tugged card the extraction came
+        // from), firing a stray dblclick there - e.g. flipping a Modifier that was never actually
+        // double-clicked. Keeping the whole gesture on this one dblclick handler means the
+        // re-render only happens after both clicks are already consumed.
         let onCardDoubleClick (_: MouseEventArgs) =
             if not this.IsDeleteMode && this.CanBeExtracted then
                 this.OnExtract ()
-            elif not this.IsDeleteMode && this.Data.Type = CardType.Modifier then
+            elif not this.IsDeleteMode && this.CanDiveIn then
+                this.OnDiveIn ()
+            elif not this.IsDeleteMode && (this.AllowFlip || this.Data.Type = CardType.Modifier) then
                 let newSide =
                     match this.CurrentSide with
                     | CardSide.Primary -> CardSide.Secondary
