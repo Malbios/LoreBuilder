@@ -222,7 +222,16 @@
     height: 35px;
 }
 
+/* .icon-cue's 35px width is far narrower than .simple-cue's own 270px (the full card width) -
+   that extra width is what lets .simple-top-edge/.simple-bottom-edge get away with specifying no
+   left/right at all and still land centered. A 35px box has no such luck: with left/right both
+   auto, position:absolute falls back to each cue's "static position" - and since every cue in
+   this set is absolutely positioned (none of them occupy real flow space), that static position
+   collapses to the same point (the container's top-left) for all of them, not the horizontal
+   center of the card. left here does what .simple-cue's own width already did implicitly:
+   (270px card - 35px icon) / 2. */
 .icon-bottom-edge {
+    left: 117.5px;
     bottom: 0;
     margin-bottom: 5px;
 }
@@ -235,6 +244,7 @@
 }
 
 .icon-top-edge {
+    left: 117.5px;
     transform: rotate(180deg);
     margin-top: 5px;
 }
