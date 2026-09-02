@@ -301,10 +301,17 @@
 }
 
 /* Same wrapping-flex-row reasoning as .card-gallery-grid's own comment - just scoped to the
-   modal panel's own bounds instead of the full viewport. */
+   modal panel's own bounds instead of the full viewport. justify-content:center matters here in
+   a way it doesn't for .card-gallery-grid: .card-picker-modal has no width of its own, so its
+   shrink-to-fit sizing falls back to this grid's *unwrapped* max-content width (every card in one
+   row), which is always far wider than max-width:90vw for any real type's pool - so the modal
+   just ends up exactly 90vw wide regardless of how many columns actually fit there, leaving
+   whatever doesn't evenly divide as dead space after the last column on every row. Centering each
+   wrapped row turns that into a symmetric margin instead of one lopsided gap. */
 .card-picker-modal-grid {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 1rem;
     padding: 1rem;
     overflow-y: auto;
