@@ -46,6 +46,16 @@ module Logical =
     let acceptsAt index logical value =
         slotTypes index logical |> Option.exists (List.contains value)
 
+    // Every value this Logical would accept at a single attachment point (unlike slotTypes,
+    // which position-locks All to one item per index for multiple physical slots) - the
+    // candidate list offered when there's only one slot to fill, e.g. LoreCluster.fs's
+    // innerRequiredType. All is treated the same as Any here, for the same reason accepts does.
+    let candidates logical =
+        match logical with
+        | Logical.One expected -> [ expected ]
+        | Logical.Any expected
+        | Logical.All expected -> expected
+
 [<RequireQualifiedAccess>]
 type RotationDirection =
     | Clockwise

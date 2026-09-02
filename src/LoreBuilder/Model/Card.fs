@@ -113,15 +113,33 @@ type ComplexCue = {
     Expansions: Logical<CardType> option
 }
 
-// The literal text split around one inline CardType icon (e.g. "A Deity's Choir" ->
-// Before="A "; Icon=Deity; After="'s Choir") - physical cards from some expansions embed an
-// actual type-icon glyph mid-phrase instead of spelling the type out, and (see LoreCluster.fs's
-// innerRequiredType) that icon also means an Inner slot filled while this card is Primary must
-// be that specific type, not one matching Primary's own.
+// The literal text split around one or more inline CardType icons (e.g. "A Deity's Choir" ->
+// Before="A "; Icon=One Deity; After="'s Choir"; or "Knights of the [figure]/[location]/[object]"
+// -> Before="Knights of the "; Icon=Any [Figure; Location; Object]; After="") - physical cards
+// from some expansions embed actual type-icon glyphs mid-phrase instead of spelling the type(s)
+// out, and (see LoreCluster.fs's innerRequiredType) those icons also mean an Inner slot filled
+// while this card is Primary must be one of those specific types, not one matching Primary's
+// own. Logical<CardType> rather than a bare CardType since a card can offer a choice of several
+// types here, same shape ComplexCue's own Expansions field already uses for the analogous
+// back-side case.
 type IconTextCue = {
     Before: string
-    Icon: CardType
+    Icon: Logical<CardType>
     After: string
+}
+
+// Like ComplexCue, but the text is split around a generic (non-type) reference icon instead of
+// being a flat string - the Namesakes Expansion's "splice in the referenced card's own active
+// text here" placeholder (e.g. "Cackling + [ref icon]" tugged onto a card showing "Knife" reads
+// as "Cackling Knife"). Purely a display concept, unlike IconTextCue's Icon - nothing reads or
+// enforces this field, since nothing processes a lore cluster's combined text yet. Expansions
+// stays available since some of these cues (a Namesakes lore card's own secondary cue) are also
+// ordinary link cues at the same time, same as ComplexCue's.
+type NamesakeCue = {
+    Header: string option
+    Before: string
+    After: string
+    Expansions: Logical<CardType> option
 }
 
 [<RequireQualifiedAccess>]
@@ -130,6 +148,7 @@ type Cue =
     | Complex of ComplexCue
     | Icon of fileName: string
     | IconText of IconTextCue
+    | Namesake of NamesakeCue
     
 [<RequireQualifiedAccess>]
 module Cue =

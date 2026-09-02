@@ -357,28 +357,30 @@ type LoreCluster() =
                 | Some (Cue.Complex complexCue) -> complexCue.Expansions
                 | _ -> None
 
-        // Which type a given Inner slot requires right now - normally Primary's own type, but
-        // some expansion cards embed a specific CardType icon in their front text instead of
-        // spelling their own type out (Cue.IconText - see Model/Card.fs), which overrides this
-        // for Inner_Bottom specifically (only) while that card is Primary - Primary's own
-        // currently *active* cue (CardEdge.Bottom, same hardcoded edge/rotation lookup Primary's
-        // own rendering already uses - see this component's OnExtractCard doc comment) is always
-        // the one showing right above Inner_Bottom, so that's the only Inner slot this "chosen
-        // edge" of Primary actually speaks to. Inner_Left/Top/Right stay plain same-type
-        // attachments regardless of what's active - Primary's other 3 cues are hidden in cluster
-        // view anyway (see Card.fs's isVisible - ActiveEdge restricts Primary to showing just one
-        // at a time), so there's nothing for them to read.
+        // Which type(s) a given Inner slot accepts right now - normally just Primary's own type,
+        // but some expansion cards embed one or more specific CardType icons in their front text
+        // instead of spelling their own type out (Cue.IconText - see Model/Card.fs), which
+        // overrides this for Inner_Bottom specifically (only) while that card is Primary -
+        // Primary's own currently *active* cue (CardEdge.Bottom, same hardcoded edge/rotation
+        // lookup Primary's own rendering already uses - see this component's OnExtractCard doc
+        // comment) is always the one showing right above Inner_Bottom, so that's the only Inner
+        // slot this "chosen edge" of Primary actually speaks to. Inner_Left/Top/Right stay plain
+        // same-type attachments regardless of what's active - Primary's other 3 cues are hidden
+        // in cluster view anyway (see Card.fs's isVisible - ActiveEdge restricts Primary to
+        // showing just one at a time), so there's nothing for them to read. Always a list (even
+        // the un-overridden case) so callers don't need a separate single/multi-candidate split -
+        // same reasoning as slotTypesFor's own list result for Outer/Outer2 just below.
         let innerRequiredType position =
             let primaryCard = cards[ClusterPosition.Primary]
 
             if primaryCard = Card.empty || position <> ClusterPosition.Inner_Bottom then
-                primaryCard.Type
+                [ primaryCard.Type ]
             else
                 let rotation = cardUiStates[ClusterPosition.Primary].Rotation
 
                 match CardHelpers.activeCue primaryCard.PrimarySide CardEdge.Bottom rotation with
-                | Some (Cue.IconText iconTextCue) -> iconTextCue.Icon
-                | _ -> primaryCard.Type
+                | Some (Cue.IconText iconTextCue) -> Logical.candidates iconTextCue.Icon
+                | _ -> [ primaryCard.Type ]
 
         // The card type(s) this specific outer/outer2 slot accepts, or None if it isn't an
         // attachment point at all right now (see Logical.slotTypes - Any/One only ever have one
@@ -425,7 +427,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Left
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
-                    not (hasCard position) && card.Type = innerRequiredType position
+                    not (hasCard position) && innerRequiredType position |> List.contains card.Type
 
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
@@ -444,7 +446,7 @@ type LoreCluster() =
             let replaceCard newCard =
                 let oldCard = cards[position]
                 cards[position] <- newCard
-                let isOverriddenInner = innerRequiredType position <> cards[ClusterPosition.Primary].Type
+                let isOverriddenInner = innerRequiredType position <> [ cards[ClusterPosition.Primary].Type ]
                 cardUiStates[position] <- initialUiState isOverriddenInner position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
                 if position = ClusterPosition.Primary && oldCard <> Card.empty && newCard = Card.empty then
@@ -465,7 +467,8 @@ type LoreCluster() =
             // The candidate type(s) offered:
             // - Inner_*: whatever innerRequiredType(position) resolves to (Primary's own type,
             //   unless this is Inner_Bottom and Primary's active front cue overrides it via a
-            //   Cue.IconText - see acceptDrop above) - always exactly one candidate.
+            //   Cue.IconText - see acceptDrop above) - one candidate per type an IconText's Any
+            //   lists (or the same single-candidate case as before for One/no override).
             // - Outer_*/Outer2_*: slotTypesFor's own resolution of the inner card's Expansions,
             //   already correct for One/Any/All alike (One/All: one type, one candidate each;
             //   Any: one candidate per listed type, so a repeated type is where an actual choice
@@ -478,7 +481,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
                     if hasCard ClusterPosition.Primary then
-                        Some [ innerRequiredType position ]
+                        Some (innerRequiredType position)
                     else
                         None
                 | _ -> slotTypesFor position
@@ -736,7 +739,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
                     hasCard position
-                    && innerRequiredType position <> cards[ClusterPosition.Primary].Type
+                    && innerRequiredType position <> [ cards[ClusterPosition.Primary].Type ]
                     && card.Type <> CardType.Modifier
                     && not (this.LockedPositions.Contains position)
                 | _ -> false

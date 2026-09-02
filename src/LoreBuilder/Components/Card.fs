@@ -32,7 +32,7 @@ module CardHelpers =
             |> Utils.renderList
         }
         
-    let complexCue cue =
+    let complexCue (cue: ComplexCue) =
         
         div {
             attr.``class`` "cue-header-and-text-and-expansions"
@@ -61,18 +61,60 @@ module CardHelpers =
         
     let iconTextCue (cue: IconTextCue) =
 
-        let iconColor = CardType.iconColor cue.Icon
-        let icon = CardType.icon cue.Icon
+        // A single type renders as one inline glyph sized to the surrounding text (unchanged
+        // from before this cue supported multiple types); Any/All reuse cueExpansions's own
+        // small-badges-with-separator rendering, already used for ComplexCue's Expansions - both
+        // land as flex children of the surrounding .icontext-cue box alongside the Before/After
+        // text either way.
+        let iconContent =
+            match cue.Icon with
+            | Logical.One t ->
+                i {
+                    attr.``class`` $"fa-solid {CardType.icon t} icontext-cue-icon"
+                    attr.style $"color: {CardType.iconColor t};"
+                }
+            | Logical.Any types -> cueExpansions "/" types
+            | Logical.All types -> cueExpansions "+" types
 
         concat {
             if cue.Before <> "" then text cue.Before
-
-            i {
-                attr.``class`` $"fa-solid {icon} icontext-cue-icon"
-                attr.style $"color: {iconColor};"
-            }
-
+            iconContent
             if cue.After <> "" then text cue.After
+        }
+
+    // Same header/text/expansions structure as complexCue - just Before/[reference icon]/After
+    // instead of a flat Text string. The reference icon is a fixed generic glyph, not
+    // type-colored (see NamesakeCue's own doc comment - it never names a specific CardType).
+    let namesakeCue (cue: NamesakeCue) =
+
+        div {
+            attr.``class`` "cue-header-and-text-and-expansions"
+
+            if cue.Header.IsSome then
+                div {
+                    attr.``class`` "cue-header"
+                    text cue.Header.Value
+                }
+
+            div {
+                attr.``class`` "cue-text-and-expansions"
+
+                div {
+                    attr.``class`` "cue-text"
+
+                    if cue.Before <> "" then text cue.Before
+
+                    i { attr.``class`` "fa-solid fa-right-to-bracket namesake-cue-icon" }
+
+                    if cue.After <> "" then text cue.After
+                }
+
+                if cue.Expansions.IsSome then
+                    match cue.Expansions.Value with
+                    | Logical.One v -> cueExpansions "" [v]
+                    | Logical.Any v -> cueExpansions "/" v
+                    | Logical.All v -> cueExpansions "+" v
+            }
         }
 
     let cardCue cardType cue =
@@ -85,6 +127,7 @@ module CardHelpers =
             | Cue.Icon fileName -> img { attr.src (Cue.iconUri cardType fileName) }
             | Cue.Complex cue -> complexCue cue
             | Cue.IconText cue -> iconTextCue cue
+            | Cue.Namesake cue -> namesakeCue cue
             
     let edgeFromRotation rotation =
         
@@ -143,18 +186,19 @@ module CardHelpers =
         | CardEdge.Top -> cues.Top
         | CardEdge.Right -> cues.Right
 
-    // The physical edge that needs extra room to fit its Complex cue's content (header + text +
-    // expansions) without it overflowing the card's own background/border - see Card.fs's
-    // Render()/OnAfterRenderAsync and Card.bolero.css's .complex-cue rule. None for Simple/Icon
-    // cues (already sized correctly) and for the no-cluster-context case (activeEdge = None, e.g.
-    // the sidebar CardStack preview).
+    // The physical edge that needs extra room to fit its Complex or Namesake cue's content
+    // (header + text + expansions) without it overflowing the card's own background/border - see
+    // Card.fs's Render()/OnAfterRenderAsync and Card.bolero.css's .complex-cue/.namesake-cue
+    // rules. None for Simple/Icon/IconText cues (already sized correctly, being short enough to
+    // fit the fixed box) and for the no-cluster-context case (activeEdge = None, e.g. the sidebar
+    // CardStack preview).
     let growthEdge (cues: Cues) (activeEdge: CardEdge option) rotation =
 
         match activeEdge with
         | None -> None
         | Some edge ->
             match activeCue cues edge rotation with
-            | Some (Cue.Complex _) -> activePhysicalEdge (Some edge) rotation
+            | Some (Cue.Complex _ | Cue.Namesake _) -> activePhysicalEdge (Some edge) rotation
             | _ -> None
 
     type CardData = {

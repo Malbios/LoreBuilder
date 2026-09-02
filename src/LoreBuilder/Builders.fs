@@ -7,26 +7,26 @@ module Cards =
     
     type ComplexCueBuilder(kind: string) =
         
-        member _.Yield _ = {
+        member _.Yield _ : ComplexCue = {
             Header = (Some kind)
             Text = ""
             Expansions = None
         }
 
         [<CustomOperation("text")>]
-        member _.Text(state, value) =
+        member _.Text(state: ComplexCue, value) =
             { state with Text = value }
 
         [<CustomOperation("expansion")>]
-        member _.Expansion(state, value) =
+        member _.Expansion(state: ComplexCue, value) =
             { state with Expansions = Some (Logical.One value) }
 
         [<CustomOperation("expansions_any")>]
-        member _.ExpansionsAny(state, value) =
+        member _.ExpansionsAny(state: ComplexCue, value) =
             { state with Expansions = Some (Logical.Any value) }
 
         [<CustomOperation("expansions_all")>]
-        member _.ExpansionsAll(state, value) =
+        member _.ExpansionsAll(state: ComplexCue, value) =
             { state with Expansions = Some (Logical.All value) }
 
         member _.Run(state) =

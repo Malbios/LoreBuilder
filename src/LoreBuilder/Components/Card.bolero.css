@@ -140,7 +140,8 @@
 .simple-cue,
 .icon-cue,
 .complex-cue,
-.icontext-cue {
+.icontext-cue,
+.namesake-cue {
     position: absolute;
 
     display: flex;
@@ -248,8 +249,10 @@
 /* height is content-driven (see wwwroot/js/card.js's measurement of this box's real
    offsetHeight) - min-height 50px is this project's original reserved size, and the baseline
    Card.fs's growthPx computation subtracts from the measured height, so the two must stay in
-   sync. */
-.complex-cue {
+   sync. Same rule (and the same reasoning) applies to .namesake-cue just below - a Namesake cue
+   is exactly as growth-eligible as a Complex one (see Card.fs's growthEdge). */
+.complex-cue,
+.namesake-cue {
     width: 270px;
     height: auto;
     min-height: 50px;
@@ -263,28 +266,41 @@
     padding: 0 14px 10px;
 }
 
-.complex-bottom-edge {
+.complex-bottom-edge,
+.namesake-bottom-edge {
     bottom: 0;
 }
 
 /* left/right/top here are only the one-frame default shown before the first real measurement
    lands (derived from the same formula Card.fs uses at runtime, with the 50px min-height as H) -
    Card.fs's inline style overrides them as soon as CardHelpers.growthEdge's measurement completes. */
-.complex-left-edge {
+.complex-left-edge,
+.namesake-left-edge {
     left: -110px;
     top: 110px;
     transform: rotate(90deg);
 }
 
-.complex-top-edge {
+.complex-top-edge,
+.namesake-top-edge {
     top: 3px;
     transform: rotate(180deg);
 }
 
-.complex-right-edge {
+.complex-right-edge,
+.namesake-right-edge {
     right: -110px;
     top: 110px;
     transform: rotate(-90deg);
+}
+
+/* CardHelpers.namesakeCue's inline reference glyph (Components/Card.fs) - sized to match the
+   surrounding .cue-text the same way .icontext-cue-icon matches its own (plain, unheadered)
+   surrounding text; see that rule's own comment for why 1em (inherit) is used instead of a fixed
+   size. */
+.namesake-cue-icon {
+    font-size: 1em;
+    margin: 0 0.15rem;
 }
 
 .cue-header {
