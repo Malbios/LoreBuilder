@@ -202,6 +202,14 @@ type LoreCluster() =
     member val private PickerCandidates: Card list = [] with get, set
     member val private PickerSelect: Card -> unit = ignore with get, set
 
+    // The CurrentSide a candidate will actually be shown with once placed (see openPicker below)
+    // - captured at popover-open time, same reasoning as PickerSelect: the popover itself is
+    // rendered once outside the per-position loop, so it can't recompute this from `position`
+    // itself. Every pick slot is Inner/Outer/Outer2 (Primary never opens this popover - see
+    // pickTypes), so this only ever varies by whether an Inner slot's type override applies (see
+    // initialUiState) - Outer/Outer2 always resolve to Primary here regardless.
+    member val private PickerCurrentSide: CardSide = CardSide.Primary with get, set
+
     // One rotation per candidate, index-aligned with PickerCandidates and reset alongside it every
     // time the popover opens - lets the user spin a candidate to preview it before committing via
     // its own "Pick" button (see Render()'s own popover block), same rotate-arrows interaction a
@@ -443,10 +451,14 @@ type LoreCluster() =
                     && hasCard (outer1PositionFor position)
                     && (slotTypesFor position |> Option.exists (List.contains card.Type))
             
+            // Doesn't depend on whichever card ends up placed - only on this slot's own required
+            // type vs. Primary's current type - so it's available before a candidate is even
+            // chosen (see openPicker below, which needs it to preview the correct CurrentSide).
+            let isOverriddenInner = innerRequiredType position <> [ cards[ClusterPosition.Primary].Type ]
+
             let replaceCard newCard =
                 let oldCard = cards[position]
                 cards[position] <- newCard
-                let isOverriddenInner = innerRequiredType position <> [ cards[ClusterPosition.Primary].Type ]
                 cardUiStates[position] <- initialUiState isOverriddenInner position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
                 if position = ClusterPosition.Primary && oldCard <> Card.empty && newCard = Card.empty then
@@ -500,6 +512,7 @@ type LoreCluster() =
                     this.PickerCandidates <- candidates
                     this.PickerRotations <- Array.zeroCreate candidates.Length
                     this.PickerSelect <- replaceCard
+                    this.PickerCurrentSide <- (initialUiState isOverriddenInner position).CurrentSide
                     this.OpenPickerPosition <- Some position
                     this.NotifyStateChanged()
 
@@ -902,11 +915,18 @@ type LoreCluster() =
                                     // (.simple-left-edge's left:-125px and siblings) are absolute
                                     // pixel values tuned for exactly this size and don't scale
                                     // with Size, so anything else misplaces the left/right cues.
-                                    // ActiveEdge left at its None default deliberately: this is a
-                                    // standalone, not-yet-placed card, so it shows the same raw,
-                                    // all-four-edges view any other standalone preview in this app
-                                    // does, not an in-cluster single active edge. Rotatable (unlike
-                                    // a cluster's own cards, nothing here depends on this exact
+                                    // ActiveEdge/CurrentSide match what this exact candidate will
+                                    // actually show once placed (every pick slot resolves to
+                                    // CardEdge.Top - see Render()'s own activeEdge match, which
+                                    // Primary, the only position that isn't, never reaches this
+                                    // popover for - and PickerCurrentSide, captured at popover-open
+                                    // time in openPicker above) rather than the raw all-four-edges
+                                    // view a standalone preview elsewhere in this app uses - without
+                                    // this, whichever cue reads as "the" prompt while picking
+                                    // (unmasked, so whatever happens to sit at the bottom) doesn't
+                                    // match which cue is actually active once tugged into place,
+                                    // and looks like it silently swapped. Rotatable (unlike a
+                                    // cluster's own cards, nothing here depends on this exact
                                     // rotation staying put) via the same arrows-on-hover
                                     // interaction, purely to preview the card before picking it -
                                     // picking itself moved to its own button below, now that
@@ -916,6 +936,8 @@ type LoreCluster() =
                                         "Size" => 270
                                         "CanBeRotated" => true
                                         "Rotation" => this.PickerRotations[idx]
+                                        "ActiveEdge" => Some CardEdge.Top
+                                        "CurrentSide" => this.PickerCurrentSide
                                         "OnRotationChanged" =>
                                             fun (rotation: int) ->
                                                 this.PickerRotations[idx] <- rotation
