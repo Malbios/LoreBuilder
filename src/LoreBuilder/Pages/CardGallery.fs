@@ -4,6 +4,7 @@ open System.Collections.Generic
 open System.Net.Http
 open Bolero
 open Bolero.Html
+open FunSharp.Common
 open LoreBuilder
 open LoreBuilder.Components
 open LoreBuilder.Model
@@ -28,6 +29,10 @@ type CardGallery() =
     let rotations = Dictionary<int, int>()
     let sides = Dictionary<int, CardSide>()
 
+    // None = nothing picked yet, show the placeholder instead of any cards. Toggled off back to
+    // None by clicking the currently-selected type's own icon again.
+    let mutable selectedType: CardType option = None
+
     override _.CssScope = CssScopes.LoreBuilder
 
     [<Inject>]
@@ -47,7 +52,21 @@ type CardGallery() =
 
     override this.Render() =
 
-        let cards = Utils.allCards () |> List.collect id
+        let pool = Utils.allCards ()
+
+        // Only the selected type's cards need to actually render as Card components - loading
+        // every type's cards into the DOM at once (the old behavior) is what made this page slow.
+        let cards =
+            match selectedType with
+            | None -> []
+            | Some cardType ->
+                pool
+                |> List.tryFind(fun group -> group |> List.tryHead |> Option.exists(fun card -> card.Type = cardType))
+                |> Option.defaultValue []
+
+        // Deliberately not filtered down the way Home.fs's own Cards excludes Modifier/Emblem -
+        // this is a read-only inspection view of the whole pool, not a drag-in source.
+        let types = pool |> List.choose(fun group -> group |> List.tryHead |> Option.map(fun card -> card.Type))
 
         div {
             attr.``class`` "home-layout"
@@ -59,39 +78,64 @@ type CardGallery() =
             }
 
             div {
-                attr.``class`` "card-gallery-grid"
+                attr.``class`` "gallery-type-bar"
 
-                for index, card in List.indexed cards do
-                    let rotation =
-                        match rotations.TryGetValue index with
-                        | true, value -> value
-                        | false, _ -> 0
-
-                    let side =
-                        match sides.TryGetValue index with
-                        | true, value -> value
-                        | false, _ -> CardSide.Primary
-
+                for cardType in types do
                     div {
-                        attr.key index
-                        attr.``class`` "card-gallery-cell"
+                        attr.key cardType
+                        attr.``class`` (if selectedType = Some cardType then "activity-bar-icon active" else "activity-bar-icon")
+                        attr.title (Union.toString cardType)
 
-                        comp<LoreBuilder.Components.Card> {
-                            "Data" => card
-                            "Size" => 270
-                            "CurrentSide" => side
-                            "CanBeRotated" => true
-                            "Rotation" => rotation
-                            "AllowFlip" => true
-                            "OnRotationChanged" =>
-                                fun (newRotation: int) ->
-                                    rotations[index] <- newRotation
-                                    this.NotifyStateChanged()
-                            "OnCurrentSideChanged" =>
-                                fun (newSide: CardSide) ->
-                                    sides[index] <- newSide
-                                    this.NotifyStateChanged()
-                        }
+                        on.click (fun _ ->
+                            selectedType <- (if selectedType = Some cardType then None else Some cardType)
+                            this.NotifyStateChanged())
+
+                        i { attr.``class`` $"fa-solid {CardType.icon cardType}" }
                     }
             }
+
+            if selectedType.IsNone then
+                div {
+                    attr.``class`` "card-gallery-empty"
+
+                    div { text "Card Gallery" }
+                    div { text "Select a card type to view in the sidebar" }
+                }
+            else
+                div {
+                    attr.``class`` "card-gallery-grid"
+
+                    for index, card in List.indexed cards do
+                        let rotation =
+                            match rotations.TryGetValue index with
+                            | true, value -> value
+                            | false, _ -> 0
+
+                        let side =
+                            match sides.TryGetValue index with
+                            | true, value -> value
+                            | false, _ -> CardSide.Primary
+
+                        div {
+                            attr.key index
+                            attr.``class`` "card-gallery-cell"
+
+                            comp<LoreBuilder.Components.Card> {
+                                "Data" => card
+                                "Size" => 270
+                                "CurrentSide" => side
+                                "CanBeRotated" => true
+                                "Rotation" => rotation
+                                "AllowFlip" => true
+                                "OnRotationChanged" =>
+                                    fun (newRotation: int) ->
+                                        rotations[index] <- newRotation
+                                        this.NotifyStateChanged()
+                                "OnCurrentSideChanged" =>
+                                    fun (newSide: CardSide) ->
+                                        sides[index] <- newSide
+                                        this.NotifyStateChanged()
+                            }
+                        }
+                }
         }

@@ -169,22 +169,60 @@
     color: #999;
 }
 
-/* Pages/CardGallery.fs's single grid of every card in the current pool, clear of .activity-bar's
-   fixed 48px the same way .side-panel is, and independently scrollable so a long pool never grows
-   the page itself past the viewport. Plain wrapping flex row rather than a CSS Grid auto-fill/
-   minmax track list - the latter's column count depends on the *grid container's* own resolved
-   width, which (when this was still split into two side-by-side halves, each its own grid track)
-   kept collapsing to a single column regardless of how much real screen space was available,
-   however this was tuned. flex-wrap's per-row fit is decided directly against the already-laid-out
-   parent width, with no equivalent ambiguity. */
+/* Pages/CardGallery.fs's own page-specific type selector, immediately right of .activity-bar -
+   same "reads as one continuous sidebar" reasoning as .side-panel/.activity-bar's own comments.
+   Unlike .side-panel this never opens/closes - it's always just a fixed-width icon column, so no
+   grid-track animation is needed here. */
+.gallery-type-bar {
+    position: absolute;
+    top: 0;
+    left: 48px;
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 48px;
+    padding-top: 0.5rem;
+    height: 100%;
+
+    background-color: #e6e6e6;
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Pages/CardGallery.fs's single grid of every card of the currently-selected type, clear of
+   .activity-bar's and .gallery-type-bar's combined 96px the same way .side-panel is, and
+   independently scrollable so a long pool never grows the page itself past the viewport. Plain
+   wrapping flex row rather than a CSS Grid auto-fill/minmax track list - the latter's column
+   count depends on the *grid container's* own resolved width, which (when this was still split
+   into two side-by-side halves, each its own grid track) kept collapsing to a single column
+   regardless of how much real screen space was available, however this was tuned. flex-wrap's
+   per-row fit is decided directly against the already-laid-out parent width, with no equivalent
+   ambiguity. */
 .card-gallery-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     height: 100vh;
-    padding: 1rem 1rem 1rem calc(48px + 1rem);
+    padding: 1rem 1rem 1rem calc(96px + 1rem);
     box-sizing: border-box;
     overflow-y: auto;
+}
+
+/* Shown instead of .card-gallery-grid while no type is selected in .gallery-type-bar. */
+.card-gallery-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 100vh;
+    padding-left: 96px;
+    box-sizing: border-box;
+
+    color: #888;
+    font-size: 1.1rem;
+    text-align: center;
 }
 
 /* No fixed size of its own - Card.fs's edge-cue CSS uses offsets hardcoded for its native 270px
