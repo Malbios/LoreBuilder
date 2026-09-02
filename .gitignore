@@ -3,6 +3,14 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+.playwright-mcp/
+
+# Card data transcribed from a purchased commercial PDF - kept locally, not committed
+src/LoreBuilder/wwwroot/data/cards/
+
+# Claude Code local tool state (worktrees, local settings)
+.claude/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -415,9 +423,3 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
-
-# Claude Code local tool state (worktrees, local settings)
-.claude/
-
-# Card data transcribed from a purchased commercial PDF - kept locally, not committed
-src/LoreBuilder/wwwroot/data/cards/
