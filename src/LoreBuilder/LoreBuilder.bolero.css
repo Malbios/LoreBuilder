@@ -5,6 +5,17 @@
     height: 100vh;
 }
 
+/* Pages/LoreWeb.fs - a second class alongside .center-wrapper (not a change to that shared
+   class itself, which Pages/NotFound.fs also uses and should stay plain) so just this page's
+   placeholder reads as the future canvas it stands in for. Same background as .canvas-area
+   (Components/Canvas.bolero.css) and .card-gallery-grid, for the same "easier on the eyes"
+   reason - text color lightened to match, since the default dark heading text has no contrast
+   against it. */
+.lore-web-canvas {
+    background-color: #4d4d4d;
+    color: #e6e6e6;
+}
+
 .card-stack {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

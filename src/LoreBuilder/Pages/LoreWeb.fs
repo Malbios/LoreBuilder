@@ -24,7 +24,7 @@ type LoreWeb() =
             }
 
             div {
-                attr.``class`` "center-wrapper"
+                attr.``class`` "center-wrapper lore-web-canvas"
 
                 h1 { "Lore Web" }
             }
