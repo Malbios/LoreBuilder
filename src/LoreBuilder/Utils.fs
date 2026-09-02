@@ -9,7 +9,7 @@ open LoreBuilder.Model
 [<RequireQualifiedAccess>]
 module Utils =
     
-    let private pickRandom (items: 'T list) =
+    let pickRandom (items: 'T list) =
 
         let rnd = Random()
         let index = rnd.Next(0, List.length items)

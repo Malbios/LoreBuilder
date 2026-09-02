@@ -26,7 +26,13 @@ type CardStack() =
 
     override this.Render() =
         
-        let topCard = this.Cards |> List.tryHead |> Option.defaultValue Card.empty
+        // A fresh pick each render, not just once per mount - every caller's own OnDragEnd
+        // re-renders after a drag finishes, so the next drag off this same stack draws again
+        // rather than always handing out the same one card.
+        let topCard =
+            match this.Cards with
+            | [] -> Card.empty
+            | cards -> LoreBuilder.Utils.pickRandom cards
         
         let cardsForDropzone =
             [topCard]
