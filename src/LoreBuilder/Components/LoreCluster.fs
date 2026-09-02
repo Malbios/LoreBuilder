@@ -915,18 +915,17 @@ type LoreCluster() =
                                     // (.simple-left-edge's left:-125px and siblings) are absolute
                                     // pixel values tuned for exactly this size and don't scale
                                     // with Size, so anything else misplaces the left/right cues.
-                                    // ActiveEdge/CurrentSide match what this exact candidate will
-                                    // actually show once placed (every pick slot resolves to
-                                    // CardEdge.Top - see Render()'s own activeEdge match, which
-                                    // Primary, the only position that isn't, never reaches this
-                                    // popover for - and PickerCurrentSide, captured at popover-open
-                                    // time in openPicker above) rather than the raw all-four-edges
-                                    // view a standalone preview elsewhere in this app uses - without
-                                    // this, whichever cue reads as "the" prompt while picking
-                                    // (unmasked, so whatever happens to sit at the bottom) doesn't
-                                    // match which cue is actually active once tugged into place,
-                                    // and looks like it silently swapped. Rotatable (unlike a
-                                    // cluster's own cards, nothing here depends on this exact
+                                    // ActiveEdge left at its None default deliberately: this is a
+                                    // standalone, not-yet-placed card, so it shows the same raw,
+                                    // all-four-edges view any other standalone preview in this app
+                                    // does, not an in-cluster single active edge - the user wants to
+                                    // review every cue before picking, not just whichever one would
+                                    // end up active. CurrentSide still matches what this exact
+                                    // candidate will actually be placed with (see PickerCurrentSide,
+                                    // captured at popover-open time in openPicker above) - unlike
+                                    // ActiveEdge that doesn't affect which cues are visible, only
+                                    // which side's set of cues they're drawn from. Rotatable (unlike
+                                    // a cluster's own cards, nothing here depends on this exact
                                     // rotation staying put) via the same arrows-on-hover
                                     // interaction, purely to preview the card before picking it -
                                     // picking itself moved to its own button below, now that
@@ -936,7 +935,6 @@ type LoreCluster() =
                                         "Size" => 270
                                         "CanBeRotated" => true
                                         "Rotation" => this.PickerRotations[idx]
-                                        "ActiveEdge" => Some CardEdge.Top
                                         "CurrentSide" => this.PickerCurrentSide
                                         "OnRotationChanged" =>
                                             fun (rotation: int) ->
