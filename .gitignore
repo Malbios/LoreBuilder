@@ -5,8 +5,9 @@
 
 .playwright-mcp/
 
-# Card data transcribed from a purchased commercial PDF - kept locally, not committed
+# Card data and icon assets transcribed from a purchased commercial PDF - kept locally, not committed
 src/LoreBuilder/wwwroot/data/cards/
+src/LoreBuilder/wwwroot/assets/symbols/
 
 # Claude Code local tool state (worktrees, local settings)
 .claude/
