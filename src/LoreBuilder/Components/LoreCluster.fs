@@ -357,20 +357,21 @@ type LoreCluster() =
                 | Some (Cue.Complex complexCue) -> complexCue.Expansions
                 | _ -> None
 
-        // Which type an Inner slot requires right now - normally Primary's own type, but some
-        // expansion cards embed a specific CardType icon in their front text instead of spelling
-        // their own type out (Cue.IconText - see Model/Card.fs), which overrides this for every
-        // Inner slot while that card is Primary. Read from Primary's own currently *active* cue
-        // (CardEdge.Bottom, same hardcoded edge/rotation lookup Primary's own rendering already
-        // uses - see this component's OnExtractCard doc comment) rather than a fixed per-position
-        // edge, matching expansionsForInner's own "read whichever cue is currently facing" idiom
-        // above. Correct regardless of which of the 4 Inner positions is being filled or how
-        // Primary is rotated, since every one of these override cards carries the same icon on
-        // all 4 of its own edges.
-        let innerRequiredType () =
+        // Which type a given Inner slot requires right now - normally Primary's own type, but
+        // some expansion cards embed a specific CardType icon in their front text instead of
+        // spelling their own type out (Cue.IconText - see Model/Card.fs), which overrides this
+        // for Inner_Bottom specifically (only) while that card is Primary - Primary's own
+        // currently *active* cue (CardEdge.Bottom, same hardcoded edge/rotation lookup Primary's
+        // own rendering already uses - see this component's OnExtractCard doc comment) is always
+        // the one showing right above Inner_Bottom, so that's the only Inner slot this "chosen
+        // edge" of Primary actually speaks to. Inner_Left/Top/Right stay plain same-type
+        // attachments regardless of what's active - Primary's other 3 cues are hidden in cluster
+        // view anyway (see Card.fs's isVisible - ActiveEdge restricts Primary to showing just one
+        // at a time), so there's nothing for them to read.
+        let innerRequiredType position =
             let primaryCard = cards[ClusterPosition.Primary]
 
-            if primaryCard = Card.empty then
+            if primaryCard = Card.empty || position <> ClusterPosition.Inner_Bottom then
                 primaryCard.Type
             else
                 let rotation = cardUiStates[ClusterPosition.Primary].Rotation
@@ -424,7 +425,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Left
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
-                    not (hasCard position) && card.Type = innerRequiredType ()
+                    not (hasCard position) && card.Type = innerRequiredType position
 
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
@@ -443,7 +444,7 @@ type LoreCluster() =
             let replaceCard newCard =
                 let oldCard = cards[position]
                 cards[position] <- newCard
-                let isOverriddenInner = innerRequiredType () <> cards[ClusterPosition.Primary].Type
+                let isOverriddenInner = innerRequiredType position <> cards[ClusterPosition.Primary].Type
                 cardUiStates[position] <- initialUiState isOverriddenInner position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
                 if position = ClusterPosition.Primary && oldCard <> Card.empty && newCard = Card.empty then
@@ -462,9 +463,9 @@ type LoreCluster() =
             // ordinary drag-and-drop unconditionally (both for replacing it directly and for
             // Pages/Home.fs's drop-anywhere new-cluster creation, neither of which this touches).
             // The candidate type(s) offered:
-            // - Inner_*: whatever innerRequiredType() resolves to (Primary's own type, unless
-            //   overridden by a Cue.IconText on Primary's active front cue - see acceptDrop
-            //   above) - always exactly one candidate.
+            // - Inner_*: whatever innerRequiredType(position) resolves to (Primary's own type,
+            //   unless this is Inner_Bottom and Primary's active front cue overrides it via a
+            //   Cue.IconText - see acceptDrop above) - always exactly one candidate.
             // - Outer_*/Outer2_*: slotTypesFor's own resolution of the inner card's Expansions,
             //   already correct for One/Any/All alike (One/All: one type, one candidate each;
             //   Any: one candidate per listed type, so a repeated type is where an actual choice
@@ -477,7 +478,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
                     if hasCard ClusterPosition.Primary then
-                        Some [ innerRequiredType () ]
+                        Some [ innerRequiredType position ]
                     else
                         None
                 | _ -> slotTypesFor position
@@ -735,7 +736,7 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Top
                 | ClusterPosition.Inner_Right ->
                     hasCard position
-                    && innerRequiredType () <> cards[ClusterPosition.Primary].Type
+                    && innerRequiredType position <> cards[ClusterPosition.Primary].Type
                     && card.Type <> CardType.Modifier
                     && not (this.LockedPositions.Contains position)
                 | _ -> false
