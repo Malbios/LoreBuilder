@@ -75,23 +75,23 @@ type CardGallery() =
                 attr.``class`` "activity-bar"
 
                 comp<PageNav> { "ActivePage" => Page.CardGallery }
-            }
 
-            div {
-                attr.``class`` "gallery-type-bar"
+                div {
+                    attr.``class`` "activity-bar-group"
 
-                for cardType in types do
-                    div {
-                        attr.key cardType
-                        attr.``class`` (if selectedType = Some cardType then "activity-bar-icon active" else "activity-bar-icon")
-                        attr.title (Union.toString cardType)
+                    for cardType in types do
+                        div {
+                            attr.key cardType
+                            attr.``class`` (if selectedType = Some cardType then "activity-bar-icon active" else "activity-bar-icon")
+                            attr.title (Union.toString cardType)
 
-                        on.click (fun _ ->
-                            selectedType <- (if selectedType = Some cardType then None else Some cardType)
-                            this.NotifyStateChanged())
+                            on.click (fun _ ->
+                                selectedType <- (if selectedType = Some cardType then None else Some cardType)
+                                this.NotifyStateChanged())
 
-                        i { attr.``class`` $"fa-solid {CardType.icon cardType}" }
-                    }
+                            i { attr.``class`` $"fa-solid {CardType.icon cardType}" }
+                        }
+                }
             }
 
             if selectedType.IsNone then

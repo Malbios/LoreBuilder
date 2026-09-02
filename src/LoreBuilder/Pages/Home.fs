@@ -394,37 +394,41 @@ type Home() =
                 comp<PageNav> { "ActivePage" => Page.Root }
 
                 div {
-                    attr.``class`` (if model.IsPanelOpen then "activity-bar-icon active" else "activity-bar-icon")
+                    attr.``class`` "activity-bar-group"
 
-                    on.click (fun _ ->
-                        model <- { model with IsPanelOpen = not model.IsPanelOpen }
-                        this.TriggerReRender())
+                    div {
+                        attr.``class`` (if model.IsPanelOpen then "activity-bar-icon active" else "activity-bar-icon")
 
-                    i { attr.``class`` "fa-solid fa-layer-group" }
-                }
+                        on.click (fun _ ->
+                            model <- { model with IsPanelOpen = not model.IsPanelOpen }
+                            this.TriggerReRender())
 
-                div {
-                    attr.``class`` (if model.IsDeleteMode then "activity-bar-icon active" else "activity-bar-icon")
+                        i { attr.``class`` "fa-solid fa-layer-group" }
+                    }
 
-                    on.click (fun _ ->
-                        model <- { model with IsDeleteMode = not model.IsDeleteMode }
-                        this.TriggerReRender())
+                    div {
+                        attr.``class`` (if model.IsDeleteMode then "activity-bar-icon active" else "activity-bar-icon")
 
-                    i { attr.``class`` "fa-solid fa-trash" }
-                }
+                        on.click (fun _ ->
+                            model <- { model with IsDeleteMode = not model.IsDeleteMode }
+                            this.TriggerReRender())
 
-                div {
-                    attr.``class`` "activity-bar-icon"
-                    on.click (fun _ -> this.ZoomActiveCanvas zoomStep)
+                        i { attr.``class`` "fa-solid fa-trash" }
+                    }
 
-                    i { attr.``class`` "fa-solid fa-magnifying-glass-plus" }
-                }
+                    div {
+                        attr.``class`` "activity-bar-icon"
+                        on.click (fun _ -> this.ZoomActiveCanvas zoomStep)
 
-                div {
-                    attr.``class`` "activity-bar-icon"
-                    on.click (fun _ -> this.ZoomActiveCanvas -zoomStep)
+                        i { attr.``class`` "fa-solid fa-magnifying-glass-plus" }
+                    }
 
-                    i { attr.``class`` "fa-solid fa-magnifying-glass-minus" }
+                    div {
+                        attr.``class`` "activity-bar-icon"
+                        on.click (fun _ -> this.ZoomActiveCanvas -zoomStep)
+
+                        i { attr.``class`` "fa-solid fa-magnifying-glass-minus" }
+                    }
                 }
             }
 
