@@ -16,18 +16,21 @@ type LoreCluster() =
 
     // The side/rotation a slot's card shows by default, before any user interaction - Inner
     // slots face inward (Secondary), since they're genuinely sandwiched between the primary and
-    // their own outer card. Outer and Outer2 both face outward (Primary) rather than alternating
-    // - each represents its own independent new card (e.g. the two Figure cards a
-    // Logical.All [figure; figure] cue calls for), not a "backside attachment" to the card before
-    // it in the chain, so neither should show its back.
-    let initialUiState position =
+    // their own outer card - UNLESS this Inner slot's type was overridden away from Primary's own
+    // (see Render()'s innerRequiredType) to something Primary's active cue specifically calls for
+    // (e.g. Deity) - that card represents its own real entity, not a generic same-type
+    // attachment, so it faces outward (Primary) just like Outer/Outer2 do. Outer and Outer2 both
+    // face outward (Primary) rather than alternating - each represents its own independent new
+    // card (e.g. the two Figure cards a Logical.All [figure; figure] cue calls for), not a
+    // "backside attachment" to the card before it in the chain, so neither should show its back.
+    let initialUiState isOverriddenInner position =
         let side =
             match position with
             | ClusterPosition.Primary -> CardSide.Primary
             | ClusterPosition.Inner_Bottom
             | ClusterPosition.Inner_Left
             | ClusterPosition.Inner_Top
-            | ClusterPosition.Inner_Right -> CardSide.Secondary
+            | ClusterPosition.Inner_Right -> if isOverriddenInner then CardSide.Primary else CardSide.Secondary
             | ClusterPosition.Outer_Bottom
             | ClusterPosition.Outer_Left
             | ClusterPosition.Outer_Top
@@ -49,7 +52,8 @@ type LoreCluster() =
     // flip it - CurrentSide is fixed per slot by initialUiState for every other card type).
     let cardUiStates =
         Union.toList<ClusterPosition>()
-        |> List.map(fun position -> (position, initialUiState position))
+        // No Primary card exists yet at this point, so no override can possibly be active.
+        |> List.map(fun position -> (position, initialUiState false position))
         |> Dictionary.ofList
 
     // Each slot's current growth in px (0 when not growing), reported by its own Card via
@@ -439,7 +443,8 @@ type LoreCluster() =
             let replaceCard newCard =
                 let oldCard = cards[position]
                 cards[position] <- newCard
-                cardUiStates[position] <- initialUiState position
+                let isOverriddenInner = innerRequiredType () <> cards[ClusterPosition.Primary].Type
+                cardUiStates[position] <- initialUiState isOverriddenInner position
                 if oldCard <> Card.empty then this.OnCardReplace(oldCard)
                 if position = ClusterPosition.Primary && oldCard <> Card.empty && newCard = Card.empty then
                     this.OnClusterEmptied()
@@ -630,10 +635,19 @@ type LoreCluster() =
                 | ClusterPosition.Inner_Right when Some position = this.AutoModifierPosition ->
                     false
 
-                | ClusterPosition.Inner_Bottom -> not (hasCard ClusterPosition.Outer_Bottom)
-                | ClusterPosition.Inner_Left -> not (hasCard ClusterPosition.Outer_Left)
-                | ClusterPosition.Inner_Top -> not (hasCard ClusterPosition.Outer_Top)
-                | ClusterPosition.Inner_Right -> not (hasCard ClusterPosition.Outer_Right)
+                // The `&& not locked` half mirrors Outer's own rule just below, for the same
+                // reason - an overridden-type Inner card (see innerRequiredType) can itself now
+                // be extracted from (see canBeExtracted below), so once it is, removing it here
+                // would orphan that live sub-canvas the same way removing a locked Outer card
+                // would.
+                | ClusterPosition.Inner_Bottom ->
+                    not (hasCard ClusterPosition.Outer_Bottom) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Left ->
+                    not (hasCard ClusterPosition.Outer_Left) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Top ->
+                    not (hasCard ClusterPosition.Outer_Top) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Right ->
+                    not (hasCard ClusterPosition.Outer_Right) && not (this.LockedPositions.Contains position)
 
                 // Once extracted from, an Outer card can't be removed either - its sub-canvas
                 // still exists and still depends on this exact card (its copy, and its rotation -
@@ -669,10 +683,20 @@ type LoreCluster() =
                 // with Primary" rule for the auto-attached Modifier) that has nothing to do with
                 // whether it's safe to rotate - conflating the two here previously left the
                 // auto-Modifier permanently unrotatable, since it can never be removed alone.
-                | ClusterPosition.Inner_Bottom -> not (hasCard ClusterPosition.Outer_Bottom)
-                | ClusterPosition.Inner_Left -> not (hasCard ClusterPosition.Outer_Left)
-                | ClusterPosition.Inner_Top -> not (hasCard ClusterPosition.Outer_Top)
-                | ClusterPosition.Inner_Right -> not (hasCard ClusterPosition.Outer_Right)
+                // The `&& not locked` half is the same protection the generic fallback below
+                // gives every other lockable position (see its own comment) - an overridden-type
+                // Inner card is now itself lockable too (see canBeExtracted below), so it needs
+                // the same guard, added explicitly here rather than by routing through that
+                // fallback (which would reintroduce the auto-Modifier bug this branch exists to
+                // avoid).
+                | ClusterPosition.Inner_Bottom ->
+                    not (hasCard ClusterPosition.Outer_Bottom) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Left ->
+                    not (hasCard ClusterPosition.Outer_Left) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Top ->
+                    not (hasCard ClusterPosition.Outer_Top) && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Right ->
+                    not (hasCard ClusterPosition.Outer_Right) && not (this.LockedPositions.Contains position)
 
                 // Once a card has been extracted from, a new cluster's Modifier orientation
                 // depends on this exact card's rotation staying put (see LockedPositions' own
@@ -682,16 +706,21 @@ type LoreCluster() =
                 // position.
                 | _ -> canBeRemoved && not (this.LockedPositions.Contains position)
 
-            // Only filled Outer cards - not Outer2, Inner, or Primary - can be extracted into a
-            // new cluster of their own (see Pages/Home.fs's OnExtractCard). Once a position
-            // already has a live extraction (LockedPositions), it can't be extracted again -
-            // re-extracting would spawn a second, disconnected sub-canvas for the same card
-            // instead of navigating back into the one that already exists (see canDiveIn below).
-            // A Modifier card can never actually reach an Outer slot in the first place (no cue's
-            // Expansions ever lists CardType.Modifier - see Data/*.fs), so this exclusion should
-            // never be load-bearing today; kept as an explicit guard anyway, since a Modifier's
-            // own cluster wouldn't make sense (nothing to attach an auto-Modifier's Inner_Bottom
-            // to on a Modifier primary) and this is cheap insurance against that changing later.
+            // Filled Outer cards can always be extracted into a new cluster of their own (see
+            // Pages/Home.fs's OnExtractCard). A filled Inner card can too, but only while its
+            // slot's type is currently overridden away from Primary's own (see innerRequiredType)
+            // - that's the only time it represents its own real entity rather than a generic
+            // same-type attachment (see initialUiState's own doc comment). Outer2 and Primary
+            // never qualify. Once a position already has a live extraction (LockedPositions), it
+            // can't be extracted again - re-extracting would spawn a second, disconnected
+            // sub-canvas for the same card instead of navigating back into the one that already
+            // exists (see canDiveIn below). A Modifier card can never actually reach an Outer slot
+            // in the first place (no cue's Expansions ever lists CardType.Modifier - see
+            // Data/*.fs), and innerRequiredType never resolves to Modifier either (no Cue.IconText
+            // in the real data uses it), so this exclusion should never be load-bearing today;
+            // kept as an explicit guard anyway, since a Modifier's own cluster wouldn't make sense
+            // (nothing to attach an auto-Modifier's Inner_Bottom to on a Modifier primary) and
+            // this is cheap insurance against that changing later.
             let canBeExtracted =
                 match position with
                 | ClusterPosition.Outer_Bottom
@@ -701,18 +730,33 @@ type LoreCluster() =
                     hasCard position
                     && card.Type <> CardType.Modifier
                     && not (this.LockedPositions.Contains position)
+                | ClusterPosition.Inner_Bottom
+                | ClusterPosition.Inner_Left
+                | ClusterPosition.Inner_Top
+                | ClusterPosition.Inner_Right ->
+                    hasCard position
+                    && innerRequiredType () <> cards[ClusterPosition.Primary].Type
+                    && card.Type <> CardType.Modifier
+                    && not (this.LockedPositions.Contains position)
                 | _ -> false
 
-            // True for a filled Outer card that's already the source of a live extraction - the
-            // mirror image of canBeExtracted above (exactly one of the two can ever be true for a
-            // given position). Double-clicking it (outside delete mode - see Card.fs's
-            // onCardDoubleClick) navigates into that sub-canvas instead.
+            // True for a filled Outer or overridden-type Inner card that's already the source of
+            // a live extraction - the mirror image of canBeExtracted above (exactly one of the
+            // two can ever be true for a given position). Double-clicking it (outside delete mode
+            // - see Card.fs's onCardDoubleClick) navigates into that sub-canvas instead. No
+            // separate override re-check needed here (unlike canBeExtracted) - membership in
+            // LockedPositions already implies it qualified at extraction time, and dive-in doesn't
+            // re-verify ongoing eligibility, matching Outer's own precedent.
             let canDiveIn =
                 match position with
                 | ClusterPosition.Outer_Bottom
                 | ClusterPosition.Outer_Left
                 | ClusterPosition.Outer_Top
-                | ClusterPosition.Outer_Right -> hasCard position && this.LockedPositions.Contains position
+                | ClusterPosition.Outer_Right
+                | ClusterPosition.Inner_Bottom
+                | ClusterPosition.Inner_Left
+                | ClusterPosition.Inner_Top
+                | ClusterPosition.Inner_Right -> hasCard position && this.LockedPositions.Contains position
                 | _ -> false
 
             concat {
