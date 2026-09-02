@@ -104,6 +104,13 @@ type Canvas() =
     [<Parameter>]
     member val OnZoomHandlerReady: (float -> unit) -> unit = ignore with get, set
 
+    // Same "child hands the parent what it needs" shape as OnZoomHandlerReady just above - lets
+    // Pages/Home.fs place a card the user picked from its own type-picker modal (see
+    // PlaceCardAtCenter below) on whichever canvas is currently active, the same way the zoom
+    // buttons reach into it.
+    [<Parameter>]
+    member val OnPlaceCardHandlerReady: (Card -> unit) -> unit = ignore with get, set
+
     member val private Zoom = 1.0 with get, set
 
     // Canvas-space size of the "no clusters yet" background dropzone (see Render()) - defaults to
@@ -155,6 +162,7 @@ type Canvas() =
         task {
             if firstRender then
                 this.OnZoomHandlerReady(fun delta -> this.ZoomButtonClicked delta)
+                this.OnPlaceCardHandlerReady(fun card -> this.PlaceCardAtCenter card)
 
                 match canvasRef.Value with
                 | Some element ->
@@ -248,6 +256,35 @@ type Canvas() =
                 with ex ->
                     // Not expected to fail in normal operation - not logged (no Logger injected
                     // here) since it's fire-and-forget from the caller's side either way.
+                    ()
+            }
+            |> ignore
+
+    // The click-to-pick counterpart to OnCanvasDropped - places a card the user chose from
+    // Pages/Home.fs's own picker modal as a new cluster centered in this canvas's current
+    // viewport, since a click (unlike a real drop event) has no clientX/clientY of its own to
+    // source a position from. loreBuilderCanvas.getCenter gives the same viewport-absolute point
+    // shape ZoomButtonClicked already uses for its own "no cursor position" case, then this reuses
+    // OnCanvasDropped's own toContentRelative + /Zoom conversion verbatim.
+    member this.PlaceCardAtCenter (card: Card) =
+
+        match canvasRef.Value with
+        | None -> ()
+        | Some element ->
+            task {
+                try
+                    let! center = this.JSRuntime.InvokeAsync<float[]>("loreBuilderCanvas.getCenter", element).AsTask()
+
+                    let! point =
+                        this.JSRuntime
+                            .InvokeAsync<float[]>("loreBuilderCanvas.toContentRelative", element, center.[0], center.[1])
+                            .AsTask()
+
+                    let canvasX = point.[0] / this.Zoom
+                    let canvasY = point.[1] / this.Zoom
+
+                    this.OnCanvasDrop(card, canvasX, canvasY)
+                with _ ->
                     ()
             }
             |> ignore

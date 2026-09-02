@@ -245,3 +245,82 @@
     justify-content: center;
 }
 
+/* Pages/Home.fs's sidebar click-to-pick modal - a real viewport-fixed overlay (unlike
+   LoreCluster.bolero.css's own .card-picker-backdrop, which is deliberately a *child* of one
+   cluster so it pans/zooms with it - this one has no cluster to anchor to, and needs to show a
+   type's whole pool rather than 2-3 candidates). z-index comfortably above every other overlay in
+   this stylesheet (highest existing is .card-picker-backdrop's own 60). */
+.card-picker-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.card-picker-modal {
+    display: flex;
+    flex-direction: column;
+    max-width: 90vw;
+    max-height: 85vh;
+
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.card-picker-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+
+    font-weight: 900;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.card-picker-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.card-picker-modal-close:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+/* Same wrapping-flex-row reasoning as .card-gallery-grid's own comment - just scoped to the
+   modal panel's own bounds instead of the full viewport. */
+.card-picker-modal-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    overflow-y: auto;
+
+    background-color: #4d4d4d;
+}
+
+.card-picker-modal-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.card-picker-modal-cell:hover {
+    transform: scale(1.03);
+}
+

@@ -39,6 +39,10 @@ type private HomeModel = {
     DragStartMouseY: float
     DragStartX: float
     DragStartY: float
+    // The type whose full pool the sidebar's click-to-pick modal is currently showing, if any -
+    // None means the modal is closed. Set by clicking a sidebar CardStack (see OpenPicker),
+    // cleared either by picking a card (OnPickCard) or by dismissing the modal without picking one.
+    PickerOpenForType: CardType option
 }
 
 type Home() =
@@ -59,6 +63,7 @@ type Home() =
         DraggingClusterId = None
         DragStartMouseX = 0.0
         DragStartMouseY = 0.0
+        PickerOpenForType = None
         DragStartX = 0.0
         DragStartY = 0.0
     }
@@ -111,6 +116,11 @@ type Home() =
     // itself), trigger a button-anchored zoom on whichever canvas is currently active without
     // Bolero exposing a direct component-reference mechanism.
     let zoomHandlers = Dictionary<Guid, float -> unit>()
+
+    // Same registration shape as zoomHandlers just above, for OpenPicker's own "place the chosen
+    // card on whichever canvas is currently active" call - see Components/Canvas.fs's
+    // OnPlaceCardHandlerReady/PlaceCardAtCenter.
+    let placeCardHandlers = Dictionary<Guid, Card -> unit>()
 
     // Held so JS can call back into this component (loreBuilderCanvas.registerEscapeKey) and
     // disposed of properly when the component goes away - standard Blazor JS-interop hygiene for
@@ -238,6 +248,33 @@ type Home() =
         match zoomHandlers.TryGetValue model.ActiveCanvasId with
         | true, handler -> handler delta
         | false, _ -> ()
+
+    // Same registration shape as OnZoomHandlerReady above, for OnPickCard's own placement call.
+    member this.OnPlaceCardHandlerReady (canvasId: Guid) (handler: Card -> unit) =
+        placeCardHandlers[canvasId] <- handler
+
+    // Opens the sidebar's click-to-pick modal for the given type - see Render()'s own modal block.
+    member this.OpenPicker (cardType: CardType) =
+        model <- { model with PickerOpenForType = Some cardType }
+        this.TriggerReRender()
+
+    // Dismisses the modal without placing anything - the backdrop's own click handler.
+    member this.ClosePicker() =
+        model <- { model with PickerOpenForType = None }
+        this.TriggerReRender()
+
+    // Places the chosen card on whichever canvas is currently active, the same "look up by
+    // ActiveCanvasId" shape as ZoomActiveCanvas above - reuses Components/Canvas.fs's own
+    // PlaceCardAtCenter/OnCanvasDrop, so this gets the exact same overlap-avoidance/positioning a
+    // drag-and-drop already has, just centered on the current viewport instead of a drop point.
+    member this.OnPickCard (card: Card) =
+        model <- { model with PickerOpenForType = None }
+
+        match placeCardHandlers.TryGetValue model.ActiveCanvasId with
+        | true, handler -> handler card
+        | false, _ -> ()
+
+        this.TriggerReRender()
 
     // Drop-anywhere: a card dropped onto empty canvas space (i.e. not caught by any existing
     // cluster's own dropzone, which sits above this one) starts a brand new, unconnected
@@ -453,6 +490,7 @@ type Home() =
                                 "OnDragEnd" => fun () ->
                                     model <- { model with DraggedCard = None }
                                     this.TriggerReRender()
+                                "OnPick" => fun () -> this.OpenPicker (List.head cards).Type
                             }
                     }
                 }
@@ -525,6 +563,7 @@ type Home() =
                         "IsDeleteMode" => model.IsDeleteMode
                         "InitialZoom" => canvasState.Zoom
                         "OnZoomHandlerReady" => fun (handler: float -> unit) -> this.OnZoomHandlerReady canvasId handler
+                        "OnPlaceCardHandlerReady" => fun (handler: Card -> unit) -> this.OnPlaceCardHandlerReady canvasId handler
                         "OnZoomChanged" => fun (zoom: float) -> this.OnZoomChanged canvasId zoom
                         "OnCanvasDrop" => fun (card: Card, x: float, y: float) -> this.OnCanvasDrop canvasId (card, x, y)
                         "OnClusterEmptied" => fun (clusterId: Guid) -> this.OnClusterEmptied canvasId clusterId
@@ -535,6 +574,60 @@ type Home() =
                             fun (clusterId: Guid) (position: ClusterPosition) (card: Card) (rotation: int) ->
                                 this.OnExtractCard canvasId clusterId position card rotation
                         "OnDiveIn" => fun (clusterId: Guid) (position: ClusterPosition) -> this.OnDiveIn canvasId clusterId position
+                    }
+                }
+
+            // The sidebar's click-to-pick modal (see OpenPicker/OnPickCard above) - shows every
+            // card of the clicked type so the user can choose exactly which one gets placed,
+            // instead of the random card a drag hands over. Backdrop click closes without
+            // picking; a click inside the panel itself is stopped from bubbling there.
+            match model.PickerOpenForType with
+            | None -> Node.Empty()
+            | Some cardType ->
+                let cardsOfType =
+                    Utils.allCards ()
+                    |> List.tryFind(fun group -> group |> List.tryHead |> Option.exists(fun c -> c.Type = cardType))
+                    |> Option.defaultValue []
+
+                div {
+                    attr.``class`` "card-picker-modal-backdrop"
+                    on.click (fun _ -> this.ClosePicker())
+
+                    div {
+                        attr.``class`` "card-picker-modal"
+                        on.click (fun _ -> ())
+                        on.stopPropagation "click" true
+
+                        div {
+                            attr.``class`` "card-picker-modal-header"
+
+                            span { text (Union.toString cardType) }
+
+                            div {
+                                attr.``class`` "card-picker-modal-close"
+                                on.click (fun _ -> this.ClosePicker())
+
+                                i { attr.``class`` "fa-solid fa-xmark" }
+                            }
+                        }
+
+                        div {
+                            attr.``class`` "card-picker-modal-grid"
+
+                            for index, card in List.indexed cardsOfType do
+                                div {
+                                    attr.key index
+                                    attr.``class`` "card-picker-modal-cell"
+                                    on.click (fun _ -> this.OnPickCard card)
+
+                                    comp<LoreBuilder.Components.Card> {
+                                        "Data" => card
+                                        "Size" => 270
+                                        "CurrentSide" => CardSide.Primary
+                                        "CanBeRotated" => false
+                                    }
+                                }
+                        }
                     }
                 }
         }
