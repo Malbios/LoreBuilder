@@ -41,6 +41,7 @@ module Utils =
             Bottom = Cue.Simple (randomCueText ()) |> Some
             Left = Cue.Simple (randomCueText ()) |> Some
         }
+        Expansion = None
     }
 
     let randomCards =

@@ -82,6 +82,7 @@ module Cards =
             Type = kind
             PrimarySide = Cues.empty
             SecondarySide = Cues.empty
+            Expansion = None
         }
             
         [<CustomOperation("primary")>]

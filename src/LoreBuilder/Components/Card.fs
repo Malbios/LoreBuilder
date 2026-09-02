@@ -59,8 +59,24 @@ module CardHelpers =
             }
         }
         
+    let iconTextCue (cue: IconTextCue) =
+
+        let iconColor = CardType.iconColor cue.Icon
+        let icon = CardType.icon cue.Icon
+
+        concat {
+            if cue.Before <> "" then text cue.Before
+
+            i {
+                attr.``class`` $"fa-solid {icon} icontext-cue-icon"
+                attr.style $"color: {iconColor};"
+            }
+
+            if cue.After <> "" then text cue.After
+        }
+
     let cardCue cardType cue =
-        
+
         match cue with
         | None -> Node.Empty ()
         | Some cue ->
@@ -68,6 +84,7 @@ module CardHelpers =
             | Cue.Simple s -> text s
             | Cue.Icon fileName -> img { attr.src (Cue.iconUri cardType fileName) }
             | Cue.Complex cue -> complexCue cue
+            | Cue.IconText cue -> iconTextCue cue
             
     let edgeFromRotation rotation =
         

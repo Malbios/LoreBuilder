@@ -162,33 +162,47 @@
     transform: scaleX(0.7) scaleY(1.3);
 }
 
-.simple-cue {
+.simple-cue,
+.icontext-cue {
     width: 270px;
     height: 20px;
 }
 
-.simple-bottom-edge {
+.simple-bottom-edge,
+.icontext-bottom-edge {
     bottom: 0;
     margin-bottom: 5px;
 }
 
-.simple-left-edge {
+.simple-left-edge,
+.icontext-left-edge {
     left: -125px;
     top: 124px;
     transform: rotate(90deg);
     margin-left: 5px;
 }
 
-.simple-top-edge {
+.simple-top-edge,
+.icontext-top-edge {
     transform: rotate(180deg);
     margin-top: 5px;
 }
 
-.simple-right-edge {
+.simple-right-edge,
+.icontext-right-edge {
     right: -125px;
     top: 127px;
     transform: rotate(-90deg);
     margin-right: 5px;
+}
+
+/* CardHelpers.iconTextCue's inline type-icon glyph (Components/Card.fs) - 1em inherits whatever
+   size the surrounding cue text itself renders at (Simple/IconText cues have no font-size rule
+   of their own, unlike .cue-text below, which is specific to Complex cues), so it reads as part
+   of the same text line instead of towering over or shrinking against it. */
+.icontext-cue-icon {
+    font-size: 1em;
+    margin: 0 0.15rem;
 }
 
 .icon-cue {

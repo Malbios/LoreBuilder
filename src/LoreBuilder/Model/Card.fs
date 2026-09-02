@@ -113,11 +113,23 @@ type ComplexCue = {
     Expansions: Logical<CardType> option
 }
 
+// The literal text split around one inline CardType icon (e.g. "A Deity's Choir" ->
+// Before="A "; Icon=Deity; After="'s Choir") - physical cards from some expansions embed an
+// actual type-icon glyph mid-phrase instead of spelling the type out, and (see LoreCluster.fs's
+// innerRequiredType) that icon also means an Inner slot filled while this card is Primary must
+// be that specific type, not one matching Primary's own.
+type IconTextCue = {
+    Before: string
+    Icon: CardType
+    After: string
+}
+
 [<RequireQualifiedAccess>]
 type Cue =
     | Simple of text: string
     | Complex of ComplexCue
     | Icon of fileName: string
+    | IconText of IconTextCue
     
 [<RequireQualifiedAccess>]
 module Cue =
@@ -176,15 +188,19 @@ type Card = {
     Type: CardType
     PrimarySide: Cues
     SecondarySide: Cues
+    // Which expansion this card came from, if any - data-level only for now (no UI surfaces it
+    // yet), e.g. "Deity Expansion". None for every base-deck card.
+    Expansion: string option
 }
 
 [<RequireQualifiedAccess>]
 module Card =
-    
+
     let empty = {
         Type = CardType.Unknown
         PrimarySide = Cues.empty
         SecondarySide = Cues.empty
+        Expansion = None
     }
     
     // Forces a fresh reference (F# record-update always allocates a new object, even
