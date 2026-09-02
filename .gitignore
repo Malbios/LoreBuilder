@@ -418,3 +418,6 @@ FodyWeavers.xsd
 
 # Claude Code local tool state (worktrees, local settings)
 .claude/
+
+# Card data transcribed from a purchased commercial PDF - kept locally, not committed
+src/LoreBuilder/wwwroot/data/cards/
