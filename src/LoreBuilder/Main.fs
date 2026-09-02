@@ -23,11 +23,16 @@ type ClientApplication() =
             dispatch (Application.Message.HoverTestMsg message)
         
         // Every other page is a conventional, document-style page that benefits from this
-        // breathing room - Home is a full-viewport app canvas (height: 100vh, its own
-        // activity-bar/sidebar/scrolling) that's specifically designed to fill the viewport
-        // edge-to-edge, so this margin would otherwise push it a few pixels past the actual
-        // viewport height, forcing an unwanted outer page scroll just to reach its own scrollbar.
-        let pageWrapperStyle = if model.Page = Page.Root then "" else "margin: 1rem;"
+        // breathing room - Root/LoreWeb/CardGallery are full-viewport app pages (height: 100vh,
+        // their own activity-bar/scrolling) specifically designed to fill the viewport
+        // edge-to-edge, so this margin would otherwise push them a few pixels past the actual
+        // viewport height, forcing an unwanted outer page scroll just to reach their own scrollbar.
+        let pageWrapperStyle =
+            match model.Page with
+            | Page.Root
+            | Page.LoreWeb
+            | Page.CardGallery -> ""
+            | _ -> "margin: 1rem;"
 
         div {
             attr.``class`` (Union.toString (currentTheme model))
@@ -47,6 +52,8 @@ type ClientApplication() =
                         | Page.DragDropTest -> comp<Pages.DragDropTest> { attr.empty() }
                         | Page.StackTest -> comp<Pages.StackTest> { attr.empty() }
                         | Page.LoreClusterTest -> comp<Pages.LoreClusterTest> { attr.empty() }
+                        | Page.LoreWeb -> comp<Pages.LoreWeb> { attr.empty() }
+                        | Page.CardGallery -> comp<Pages.CardGallery> { attr.empty() }
                 }
             }
         }

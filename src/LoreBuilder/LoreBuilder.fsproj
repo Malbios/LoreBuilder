@@ -24,16 +24,6 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
   <ItemGroup>
-    <Content Remove="Data\factions.json" />
-    <Content Remove="Data\figures.json" />
-    <Content Remove="Data\events.json" />
-    <Content Remove="Data\locations.json" />
-    <Content Remove="Data\objects.json" />
-    <Content Remove="Data\creatures.json" />
-    <Content Remove="Data\materials.json" />
-    <Content Remove="Data\deities.json" />
-    <Content Remove="Data\emblems.json" />
-    <Content Remove="Data\modifiers.json" />
     <Content Update="wwwroot\assets\symbols\white\axe.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -51,16 +41,7 @@
     <Compile Include="Model\HoverTest.fs" />
     <Compile Include="Model\Application.fs" />
     <Compile Include="Builders.fs" />
-    <Compile Include="Data\Factions.fs" />
-    <Compile Include="Data\Figures.fs" />
-    <Compile Include="Data\Events.fs" />
-    <Compile Include="Data\Locations.fs" />
-    <Compile Include="Data\Objects.fs" />
-    <Compile Include="Data\Creatures.fs" />
-    <Compile Include="Data\Materials.fs" />
-    <Compile Include="Data\Deities.fs" />
-    <Compile Include="Data\Emblems.fs" />
-    <Compile Include="Data\Modifiers.fs" />
+    <Compile Include="CardData.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Components\CardBadge.fs" />
     <None Include="Components\CardBadge.bolero.css" />
@@ -74,28 +55,19 @@
     <None Include="Components\LoreCluster.bolero.css" />
     <Compile Include="Components\Canvas.fs" />
     <None Include="Components\Canvas.bolero.css" />
+    <Compile Include="Components\PageNav.fs" />
     <Compile Include="Pages\NotFound.fs" />
     <Compile Include="Pages\HoverTest.fs" />
     <Compile Include="Pages\CardTest.fs" />
     <Compile Include="Pages\DragDropTest.fs" />
     <Compile Include="Pages\StackTest.fs" />
     <Compile Include="Pages\LoreClusterTest.fs" />
+    <Compile Include="Pages\LoreWeb.fs" />
+    <Compile Include="Pages\CardGallery.fs" />
     <Compile Include="Pages\Home.fs" />
     <Compile Include="Update.fs" />
     <Compile Include="Main.fs" />
     <None Include="LoreBuilder.bolero.css" />
     <Compile Include="Startup.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="JsonData\creatures.json" />
-    <_ContentIncludedByDefault Remove="JsonData\deities.json" />
-    <_ContentIncludedByDefault Remove="JsonData\emblems.json" />
-    <_ContentIncludedByDefault Remove="JsonData\events.json" />
-    <_ContentIncludedByDefault Remove="JsonData\factions.json" />
-    <_ContentIncludedByDefault Remove="JsonData\figures.json" />
-    <_ContentIncludedByDefault Remove="JsonData\locations.json" />
-    <_ContentIncludedByDefault Remove="JsonData\materials.json" />
-    <_ContentIncludedByDefault Remove="JsonData\modifiers.json" />
-    <_ContentIncludedByDefault Remove="JsonData\objects.json" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 namespace LoreBuilder.Pages
 
+open System.Net.Http
 open Bolero
 open Bolero.Html
 open LoreBuilder
@@ -24,23 +25,22 @@ type LoreClusterTest() =
     
     [<Inject>]
     member val Logger : ILogger<LoreClusterTest> = Unchecked.defaultof<_> with get, set
-        
+
+    [<Inject>]
+    member val Http: HttpClient = Unchecked.defaultof<_> with get, set
+
     member this.Cards =
-        
-        // Utils.allCards
-        // |> List.map (fun x ->
-        //     match x with
-        //     | Ok v -> v
-        //     | Error error ->
-        //         this.Logger.LogError $"{error}"
-        //         List.Empty
-        // )
-        
-        Utils.allCards
-        
+        Utils.allCards ()
+
     member this.TriggerReRender() =
         this.StateHasChanged()
-    
+
+    // Idempotent (see CardData.loadAsync) - harmless even if Pages/Home.fs's own copy of this call
+    // already loaded the pool first.
+    override this.OnInitializedAsync() =
+        task { do! CardData.loadAsync this.Http this.Logger }
+        :> System.Threading.Tasks.Task
+
     override this.Render() =
         
         comp<RadzenStack> {

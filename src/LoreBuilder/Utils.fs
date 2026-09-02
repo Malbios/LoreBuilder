@@ -49,13 +49,18 @@ module Utils =
         |> List.filter (fun cardType -> cardType <> CardType.Unknown)
         |> List.map randomCard
         
-    // Only one Modifier card exists in Data/Modifiers.fs today, so this is deterministic for now -
-    // written generically since more will be added later.
-    let randomModifierCard () = Modifiers.cards |> pickRandom
+    // Deterministic only in that CardData's own JSON currently has one Modifier card - written
+    // generically since more will be added there over time.
+    let randomModifierCard () =
+        CardData.pool ()
+        |> List.tryFind (fun pool -> pool |> List.tryHead |> Option.exists (fun card -> card.Type = CardType.Modifier))
+        |> Option.map pickRandom
+        |> Option.defaultValue Card.empty
 
-    let allCards = [
-        Factions.cards; Figures.cards; Events.cards; Locations.cards; Objects.cards; Creatures.cards; Materials.cards; Deities.cards; Emblems.cards; Modifiers.cards
-    ]
+    // A function, not a plain `let`-bound value - CardData.pool() only has real data in it once
+    // CardData.loadAsync has resolved (see Pages/Home.fs's OnInitializedAsync), and a `let` here
+    // would evaluate once at module load, before that ever runs, permanently caching an empty list.
+    let allCards () = CardData.pool ()
 
     // One random card per requested type, independently - a "pick one of two locations" slot
     // (Logical.Any [location; location]) asks for this with the same type listed twice, and gets
@@ -65,7 +70,7 @@ module Utils =
     let randomCandidatesFor (types: CardType list) : Card list =
         types
         |> List.map (fun cardType ->
-            allCards
+            CardData.pool ()
             |> List.tryFind (fun pool -> pool |> List.tryHead |> Option.exists (fun card -> card.Type = cardType))
             |> Option.map pickRandom
             |> Option.defaultValue Card.empty)

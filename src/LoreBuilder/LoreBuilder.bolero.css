@@ -169,3 +169,34 @@
     color: #999;
 }
 
+/* Pages/CardGallery.fs's single grid of every card in the current pool, clear of .activity-bar's
+   fixed 48px the same way .side-panel is, and independently scrollable so a long pool never grows
+   the page itself past the viewport. Plain wrapping flex row rather than a CSS Grid auto-fill/
+   minmax track list - the latter's column count depends on the *grid container's* own resolved
+   width, which (when this was still split into two side-by-side halves, each its own grid track)
+   kept collapsing to a single column regardless of how much real screen space was available,
+   however this was tuned. flex-wrap's per-row fit is decided directly against the already-laid-out
+   parent width, with no equivalent ambiguity. */
+.card-gallery-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    height: 100vh;
+    padding: 1rem 1rem 1rem calc(48px + 1rem);
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* No fixed size of its own - Card.fs's edge-cue CSS uses offsets hardcoded for its native 270px
+   Size (confirmed earlier this session breaking at Size=200 for the click-to-pick popover), so
+   cards render at that native size here too rather than being shrunk, and this cell just centers
+   around whatever that card's own real footprint ends up being (base 270px plus each edge cue's
+   own extent, which varies by cue content) - same display:flex;align-items:center;
+   justify-content:center trick Canvas.fs's own .canvas-cell already uses to give a fixed-size
+   card room for its cues to extend past its own box. */
+.card-gallery-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+

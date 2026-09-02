@@ -2,6 +2,7 @@ namespace LoreBuilder.Pages
 
 open System
 open System.Collections.Generic
+open System.Net.Http
 open Bolero
 open Bolero.Html
 open FunSharp.Common
@@ -124,13 +125,16 @@ type Home() =
     [<Inject>]
     member val JSRuntime: IJSRuntime = Unchecked.defaultof<_> with get, set
 
+    [<Inject>]
+    member val Http: HttpClient = Unchecked.defaultof<_> with get, set
+
     // Modifier and Emblem are never something the user drags in directly - Modifiers only ever
     // arrive auto-attached by extraction (Utils.randomModifierCard) or picked via a cluster
     // slot's own "Any"/"One" click-to-pick trigger (Utils.randomCandidatesFor), and Emblems have
     // no place in a cluster at all yet. Utils.allCards itself stays the full set (that random-pick
     // machinery still needs every type in it) - only the sidebar's own drag-in list is filtered.
     member this.Cards =
-        Utils.allCards
+        Utils.allCards ()
         |> List.filter(fun cards ->
             match cards with
             | card :: _ -> card.Type <> CardType.Modifier && card.Type <> CardType.Emblem
@@ -343,6 +347,16 @@ type Home() =
             this.TriggerReRender()
         | None -> ()
 
+    // Loads the card pool from wwwroot/data/cards/*.json before this component's first render -
+    // CardData.loadAsync is idempotent, so this is harmless if Pages/LoreClusterTest.fs's own copy
+    // of this call already loaded it first. Blazor renders once with an empty pool and
+    // automatically re-renders once this resolves (a real HttpClient fetch in WASM is never
+    // synchronously complete) - for a few small same-origin static files that flash is expected to
+    // be imperceptible, so no separate loading-state UI.
+    override this.OnInitializedAsync() =
+        task { do! CardData.loadAsync this.Http this.Logger }
+        :> System.Threading.Tasks.Task
+
     override this.OnAfterRenderAsync(firstRender: bool) =
         task {
             if firstRender then
@@ -376,6 +390,8 @@ type Home() =
 
             div {
                 attr.``class`` "activity-bar"
+
+                comp<PageNav> { "ActivePage" => Page.Root }
 
                 div {
                     attr.``class`` (if model.IsPanelOpen then "activity-bar-icon active" else "activity-bar-icon")

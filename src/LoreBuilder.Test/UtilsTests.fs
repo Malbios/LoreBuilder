@@ -11,11 +11,14 @@ module ``Utils Tests`` =
 
     type ``randomModifierCard``() =
 
-        // Only one Modifier card exists in Data/Modifiers.fs today, so this is deterministic for
-        // now - this assertion will still hold once more are added, it just won't be the only one
-        // possible any more.
+        // Card data now comes from CardData's own runtime-loaded pool (see CardData.fs), not a
+        // compiled Data/Modifiers.fs module - seed it directly rather than depending on a real
+        // HttpClient fetch, which isn't available in a unit test.
         [<Fact>]
         let ``always returns a card of type Modifier`` () =
+            // Arrange
+            CardData.seedForTests [ [ { Card.empty with Type = CardType.Modifier } ] ]
+
             // Act
             let card = Utils.randomModifierCard ()
 

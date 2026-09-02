@@ -16,6 +16,7 @@
         <Compile Include="CardTests.fs"/>
         <Compile Include="ClusterTests.fs"/>
         <Compile Include="CanvasTreeTests.fs"/>
+        <Compile Include="CardDataTests.fs"/>
         <Compile Include="UtilsTests.fs"/>
         <Compile Include="BuildersTests.fs"/>
         <Compile Include="Program.fs"/>
