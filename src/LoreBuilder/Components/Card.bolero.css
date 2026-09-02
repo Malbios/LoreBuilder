@@ -139,7 +139,8 @@
 
 .simple-cue,
 .icon-cue,
-.complex-cue {
+.complex-cue,
+.icontext-cue {
     position: absolute;
 
     display: flex;
